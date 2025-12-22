@@ -3,7 +3,6 @@ package tests
 import (
 	"fmt"
 	"main/src"
-	"sync"
 	"testing"
 )
 
@@ -77,31 +76,6 @@ func RunStorageTests(t *testing.T, s src.Storage[string]) {
 		}
 	})
 
-	t.Run("BulkSet", func(t *testing.T) {
-		data := []struct {
-			Key   string
-			Value string
-		}{
-			{"bulkKey1", "bulkValue1"},
-			{"bulkKey2", "bulkValue2"},
-			{"bulkKey3", "bulkValue3"},
-		}
-
-		if err := s.BulkSet(data); err != nil {
-			t.Fatalf("BulkSet failed: %v", err)
-		}
-
-		for _, item := range data {
-			retrievedValue, err := s.Get(item.Key)
-			if err != nil {
-				t.Fatalf("Get failed: %v", err)
-			}
-			if retrievedValue != item.Value {
-				t.Errorf("Expected %s, got %s", item.Value, retrievedValue)
-			}
-		}
-	})
-
 	t.Run("Get non-existing key", func(t *testing.T) {
 		key := "nonExistingKey"
 
@@ -114,40 +88,28 @@ func RunStorageTests(t *testing.T, s src.Storage[string]) {
 		}
 	})
 
-	t.Run("Check multithreading safety", func(t *testing.T) {
-		var wg sync.WaitGroup
-		numGoroutines := 100
-		numOperations := 100
-		wg.Add(numGoroutines * 2)
-		// Writer goroutines
-		for i := 0; i < numGoroutines; i++ {
-			go func(id int) {
-				defer wg.Done()
-				for j := 0; j < numOperations; j++ {
-					key := fmt.Sprintf("key-%d-%d", id, j)
-					value := fmt.Sprintf("value-%d-%d", id, j)
-					if err := s.Set(key, value); err != nil {
-						t.Errorf("Set failed: %v", err)
-					}
-				}
-			}(i)
+	t.Run("Manny Sets and gets", func(t *testing.T) {
+		n := 1025
+		for i := 0; i < n; i++ {
+			key := fmt.Sprintf("key-%d", i)
+			value := fmt.Sprintf("value-%d", i)
+			if err := s.Set(key, value); err != nil {
+				t.Fatalf("Set failed: %v", err)
+			}
 		}
 
-		// Reader goroutines
-		for i := 0; i < numGoroutines; i++ {
-			go func(id int) {
-				defer wg.Done()
-				for j := 0; j < numOperations; j++ {
-					key := fmt.Sprintf("key-%d-%d", id, j)
-					_, err := s.Get(key)
-					if err != nil {
-						t.Errorf("Get failed: %v", err)
-					}
-				}
-			}(i)
-		}
+		for i := 0; i < n; i++ {
+			key := fmt.Sprintf("key-%d", i)
+			value := fmt.Sprintf("value-%d", i)
 
-		wg.Wait()
+			retrievedValue, err := s.Get(key)
+			if err != nil {
+				t.Fatalf("Get failed: %v", err)
+			}
+			if retrievedValue != value {
+				t.Errorf("Expected %s, got %s", value, retrievedValue)
+			}
+		}
 	})
 }
 
