@@ -1,5 +1,8 @@
 package src
 
+// RESP2 parser and renderer for byte streams.
+// reference: https://redis.io/docs/latest/develop/reference/protocol-spec/
+
 import (
 	"fmt"
 	"io"
@@ -150,5 +153,60 @@ func (p *Resp2BytesParser) Parse() (Resp2Value, error) {
 		return p.parseArray()
 	default:
 		return nil, fmt.Errorf("unknown RESP2 type: %c", kind)
+	}
+}
+
+func containsCRLF(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\r' || s[i] == '\n' {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Resp2BytesParser) renderArray(v []Resp2Value) ([]byte, error) {
+	if v == nil {
+		return []byte("*-1\r\n"), nil
+	}
+	result := []byte("*" + strconv.FormatInt(int64(len(v)), 10) + "\r\n")
+	for _, elem := range v {
+		elemBytes, err := p.Render(elem)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, elemBytes...)
+	}
+	return result, nil
+}
+
+func (p *Resp2BytesParser) Render(value Resp2Value) ([]byte, error) {
+	switch v := value.(type) {
+	case string:
+		// it might be simple string or bulk string
+		// for simplicity we will check if it contains CR or LF if so we will use bulk string
+		// or if it's too long it will be better for buffering
+		if len(v) == 0 {
+			// Null bulk string
+			return []byte("$-1\r\n"), nil
+		} else if containsCRLF(v) || len(v) > 512 {
+			// bulk string
+			return []byte("$" + strconv.Itoa(len(v)) + "\r\n" + v + "\r\n"), nil
+		}
+		// simple string
+		return []byte("+" + v + "\r\n"), nil
+	case Resp2Error:
+		return []byte("-" + string(v) + "\r\n"), nil
+	case int64:
+		return []byte(":" + strconv.FormatInt(v, 10) + "\r\n"), nil
+	case nil:
+		// Null array
+		return []byte("*-1\r\n"), nil
+	case Resp2Array:
+		return p.renderArray([]Resp2Value(v))
+	case []Resp2Value:
+		return p.renderArray(v)
+	default:
+		return nil, fmt.Errorf("unsupported RESP2 value type %T", value)
 	}
 }

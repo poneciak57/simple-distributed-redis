@@ -263,3 +263,83 @@ func TestResp2ParserArray(t *testing.T) {
 		}
 	})
 }
+
+func TestResp2Renderer(t *testing.T) {
+	t.Run("Simple String", func(t *testing.T) {
+		renderer := src.MakeResp2ByteParser(nil)
+		value := "Hello, World!"
+		data, err := renderer.Render(value)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		expected := []byte("+Hello, World!\r\n")
+		if string(data) != string(expected) {
+			t.Errorf("Expected %q, got %q", string(expected), string(data))
+		}
+	})
+
+	t.Run("Integer", func(t *testing.T) {
+		renderer := src.MakeResp2ByteParser(nil)
+		value := int64(12345)
+		data, err := renderer.Render(value)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		expected := []byte(":12345\r\n")
+		if string(data) != string(expected) {
+			t.Errorf("Expected %q, got %q", string(expected), string(data))
+		}
+	})
+
+	t.Run("Bulk String", func(t *testing.T) {
+		renderer := src.MakeResp2ByteParser(nil)
+		value := "foo\r\nbar"
+		data, err := renderer.Render(value)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		expected := []byte("$8\r\nfoo\r\nbar\r\n")
+		if string(data) != string(expected) {
+			t.Errorf("Expected %q, got %q", string(expected), string(data))
+		}
+	})
+
+	t.Run("Array", func(t *testing.T) {
+		renderer := src.MakeResp2ByteParser(nil)
+		value := []src.Resp2Value{int64(1), "two", int64(3)}
+		data, err := renderer.Render(value)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		expected := []byte("*3\r\n:1\r\n+two\r\n:3\r\n")
+		if string(data) != string(expected) {
+			t.Errorf("Expected %q, got %q", string(expected), string(data))
+		}
+	})
+
+	t.Run("Null Bulk String", func(t *testing.T) {
+		renderer := src.MakeResp2ByteParser(nil)
+		value := ""
+		data, err := renderer.Render(value)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		expected := []byte("$-1\r\n")
+		if string(data) != string(expected) {
+			t.Errorf("Expected %q, got %q", string(expected), string(data))
+		}
+	})
+
+	t.Run("Null Array", func(t *testing.T) {
+		renderer := src.MakeResp2ByteParser(nil)
+		var value []src.Resp2Value = nil
+		data, err := renderer.Render(value)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		expected := []byte("*-1\r\n")
+		if string(data) != string(expected) {
+			t.Errorf("Expected %q, got %q", string(expected), string(data))
+		}
+	})
+}
