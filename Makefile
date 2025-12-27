@@ -1,4 +1,6 @@
 
+export GOEXPERIMENT=rangefunc
+
 build:
 	mkdir -p bin
 	go build -o bin/app main.go

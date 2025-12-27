@@ -59,7 +59,7 @@ A learning-focused implementation of a distributed key-value store inspired by R
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Go 1.18+ (for generics support)
+- Go 1.23+ (for rangefunctions experimental support)
 - redis-cli (optional, for testing)
 
 ### Installation

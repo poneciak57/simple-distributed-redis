@@ -1,0 +1,8 @@
+{
+    "go.toolsEnvVars": {
+        "GOEXPERIMENT": "rangefunc"
+    },
+    "go.testEnvVars": {
+        "GOEXPERIMENT": "rangefunc"
+    }
+}

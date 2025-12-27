@@ -6,6 +6,10 @@ type Storage[T any] interface {
 	Set(key string, value T) error
 	Delete(key string) error
 	Exists(key string) (bool, error)
+
+	// Iterator returns a function that iterates over all key-value pairs in storage.
+	// It uses experimental generators feature.
+	Iterator() func(func(string, T) bool)
 }
 
 // Simple in memory implementation of storage
@@ -41,4 +45,14 @@ func (s *InMemoryStorage[T]) Exists(key string) (bool, error) {
 func (s *InMemoryStorage[T]) Delete(key string) error {
 	delete(s.data, key)
 	return nil
+}
+
+func (s *InMemoryStorage[T]) Iterator() func(func(string, T) bool) {
+	return func(yield func(string, T) bool) {
+		for k := range s.data {
+			if !yield(k, s.data[k]) {
+				break
+			}
+		}
+	}
 }
