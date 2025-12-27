@@ -124,32 +124,10 @@ TBD
 
 See [roadmap.md](docs/roadmap.md) for detailed progress.
 
-## 🔧 Configuration (Planned)
+## 🔧 Configuration
+Configuration is done via `config/default.yaml`.
+TBD: Add details about configuration options.
 
-```yaml
-node:
-  id: "node-1"
-  host: "localhost"
-  port: 6379
-
-cluster:
-  nodes:
-    - id: "node-1"
-      host: "localhost"
-      port: 6379
-    - id: "node-2"
-      host: "localhost"
-      port: 6380
-
-storage:
-  type: "memory"
-  wal_dir: "./data/wal"
-  snapshot_interval: 1000
-
-raft:
-  election_timeout: "300ms"
-  heartbeat_interval: "100ms"
-```
 
 ## 🎓 Learning Resources
 
