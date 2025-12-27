@@ -2,6 +2,7 @@ package src
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/gob"
 	"fmt"
 	"io"
@@ -105,8 +106,17 @@ func (w *SimpleWal) Append(entry WalEntry[string], sync bool) error {
 		return err
 	}
 
+	payload := buf.Bytes()
+	size := int64(len(payload))
+
+	// Write length prefix
+	if err := binary.Write(w.fd, binary.LittleEndian, size); err != nil {
+		return err
+	}
+	w.size += 8 // int64 size
+
 	// Write to file
-	n, err := w.fd.Write(buf.Bytes())
+	n, err := w.fd.Write(payload)
 	if err != nil {
 		return err
 	}
@@ -127,18 +137,25 @@ func (w *SimpleWal) Replay() ([]WalEntry[string], error) {
 	}
 
 	var entries []WalEntry[string]
-	decoder := gob.NewDecoder(w.fd)
 
 	for {
-		var entry WalEntry[string]
-		err := decoder.Decode(&entry)
+		var size int64
+		err := binary.Read(w.fd, binary.LittleEndian, &size)
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			// If we encounter an error (e.g. partial write at the end),
-			// we might want to stop and return what we have, or return error.
-			// For now, return error.
+			return nil, err
+		}
+
+		data := make([]byte, size)
+		_, err = io.ReadFull(w.fd, data)
+		if err != nil {
+			return nil, err
+		}
+
+		var entry WalEntry[string]
+		if err := gob.NewDecoder(bytes.NewReader(data)).Decode(&entry); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)

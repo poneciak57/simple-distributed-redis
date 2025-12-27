@@ -2,13 +2,15 @@ package src
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/gob"
 	"fmt"
+	"io"
 	"os"
 )
 
 type Snapshoter[T any] interface {
-	LoadSnapshot(log *os.File) (Storage[T], error)
+	LoadSnapshot() (Storage[T], error)
 	Snapshot(wal Wal[T]) error
 }
 
@@ -28,7 +30,46 @@ func NewSimpleSnapshotter[T any](snapshotPath string) *SimpleSnapshotter[T] {
 }
 
 func (s *SimpleSnapshotter[T]) LoadSnapshot() (Storage[T], error) {
-	return nil, nil
+	_, err := os.Stat(s.snapshotPath)
+	if os.IsNotExist(err) {
+		return MakeInMemoryStorage[T](), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	fd, err := os.Open(s.snapshotPath)
+	if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
+
+	store := MakeInMemoryStorage[T]()
+
+	for {
+		var size int64
+		err := binary.Read(fd, binary.LittleEndian, &size)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		data := make([]byte, size)
+		_, err = io.ReadFull(fd, data)
+		if err != nil {
+			return nil, err
+		}
+
+		var entry SnapshotEntry[T]
+		if err := gob.NewDecoder(bytes.NewReader(data)).Decode(&entry); err != nil {
+			return nil, err
+		}
+		store.Set(entry.Key, entry.Value)
+	}
+
+	return store, nil
 }
 
 func (s *SimpleSnapshotter[T]) Snapshot(wal Wal[T]) error {
@@ -37,7 +78,9 @@ func (s *SimpleSnapshotter[T]) Snapshot(wal Wal[T]) error {
 		return err
 	}
 
-	modify_store(wal, &cur)
+	if err := modify_store(wal, cur); err != nil {
+		return err
+	}
 
 	tmp_path := s.snapshotPath + ".tmp"
 	err = snapshot(tmp_path, cur)
@@ -68,8 +111,15 @@ func snapshot[T any](snapshotPath string, store Storage[T]) error {
 			return err
 		}
 
+		payload := buf.Bytes()
+		size := int64(len(payload))
+
+		if err := binary.Write(fd, binary.LittleEndian, size); err != nil {
+			return err
+		}
+
 		// Write to file
-		_, err := fd.Write(buf.Bytes())
+		_, err := fd.Write(payload)
 		if err != nil {
 			return err
 		}
@@ -81,7 +131,7 @@ func snapshot[T any](snapshotPath string, store Storage[T]) error {
 	return nil
 }
 
-func modify_store[T any](wal Wal[T], store *Storage[T]) error {
+func modify_store[T any](wal Wal[T], store Storage[T]) error {
 	entries, err := wal.Replay()
 	if err != nil {
 		return err
@@ -92,11 +142,11 @@ func modify_store[T any](wal Wal[T], store *Storage[T]) error {
 		case GET:
 			// No-op for snapshot
 		case SET:
-			if err := (*store).Set(entry.Key, entry.Value); err != nil {
+			if err := store.Set(entry.Key, entry.Value); err != nil {
 				return err
 			}
 		case DELETE:
-			if err := (*store).Delete(entry.Key); err != nil {
+			if err := store.Delete(entry.Key); err != nil {
 				return err
 			}
 		case PING:
