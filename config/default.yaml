@@ -1,0 +1,13 @@
+
+snapshot:
+  path: ".data/snapshot.db"
+  interval: 3600 # in seconds
+  threshold: 1048576 # 1MB number of bytes in wal before snapshot is triggered
+
+wal:
+  path: ".data/wal.log"
+
+redis:
+  host: "localhost"
+  port: 6379
+  timeout: 5 # in seconds
