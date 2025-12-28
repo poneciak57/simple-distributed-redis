@@ -1,4 +1,4 @@
-package src
+package storage
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
+	"main/src/protocol"
 	"os"
 )
 
@@ -139,17 +140,17 @@ func modify_store[T any](wal Wal[T], store Storage[T]) error {
 
 	for _, entry := range entries {
 		switch entry.OpType {
-		case GET:
+		case protocol.GET:
 			// No-op for snapshot
-		case SET:
+		case protocol.SET:
 			if err := store.Set(entry.Key, entry.Value); err != nil {
 				return err
 			}
-		case DELETE:
+		case protocol.DELETE:
 			if err := store.Delete(entry.Key); err != nil {
 				return err
 			}
-		case PING:
+		case protocol.PING:
 			// No-op for snapshot
 		default:
 			return fmt.Errorf("unknown operation type in WAL: %v", entry.OpType)

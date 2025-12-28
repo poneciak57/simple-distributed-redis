@@ -1,26 +1,26 @@
 package tests
 
 import (
-	"main/src"
+	"main/src/protocol"
 	"testing"
 )
 
 func TestOpParserGET(t *testing.T) {
 	t.Run("Normal with simple strings", func(t *testing.T) {
 		inp := []byte("*2\r\n+GET\r\n+mykey\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		op, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
 
-		if op.Kind != src.GET {
+		if op.Kind != protocol.GET {
 			t.Errorf("Expected GET operation, got %v", op.Kind)
 		}
 
-		payload, ok := op.Payload.(src.OpPayloadGet)
+		payload, ok := op.Payload.(protocol.OpPayloadGet)
 		if !ok {
 			t.Fatalf("Expected OpPayloadGet, got %T", op.Payload)
 		}
@@ -32,19 +32,19 @@ func TestOpParserGET(t *testing.T) {
 
 	t.Run("Normal with bulk strings", func(t *testing.T) {
 		inp := []byte("*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		op, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
 
-		if op.Kind != src.GET {
+		if op.Kind != protocol.GET {
 			t.Errorf("Expected GET operation, got %v", op.Kind)
 		}
 
-		payload, ok := op.Payload.(src.OpPayloadGet)
+		payload, ok := op.Payload.(protocol.OpPayloadGet)
 		if !ok {
 			t.Fatalf("Expected OpPayloadGet, got %T", op.Payload)
 		}
@@ -56,15 +56,15 @@ func TestOpParserGET(t *testing.T) {
 
 	t.Run("Mixed string types", func(t *testing.T) {
 		inp := []byte("*2\r\n+GET\r\n$6\r\nmykey2\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		op, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
 
-		payload, ok := op.Payload.(src.OpPayloadGet)
+		payload, ok := op.Payload.(protocol.OpPayloadGet)
 		if !ok {
 			t.Fatalf("Expected OpPayloadGet, got %T", op.Payload)
 		}
@@ -76,8 +76,8 @@ func TestOpParserGET(t *testing.T) {
 
 	t.Run("Too few arguments", func(t *testing.T) {
 		inp := []byte("*1\r\n+GET\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -90,8 +90,8 @@ func TestOpParserGET(t *testing.T) {
 
 	t.Run("Too many arguments", func(t *testing.T) {
 		inp := []byte("*3\r\n+GET\r\n+key1\r\n+key2\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -101,8 +101,8 @@ func TestOpParserGET(t *testing.T) {
 
 	t.Run("Non-string key", func(t *testing.T) {
 		inp := []byte("*2\r\n+GET\r\n:123\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -117,19 +117,19 @@ func TestOpParserGET(t *testing.T) {
 func TestOpParserSET(t *testing.T) {
 	t.Run("Normal with simple strings", func(t *testing.T) {
 		inp := []byte("*3\r\n+SET\r\n+mykey\r\n+myvalue\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		op, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
 
-		if op.Kind != src.SET {
+		if op.Kind != protocol.SET {
 			t.Errorf("Expected SET operation, got %v", op.Kind)
 		}
 
-		payload, ok := op.Payload.(src.OpPayloadSet)
+		payload, ok := op.Payload.(protocol.OpPayloadSet)
 		if !ok {
 			t.Fatalf("Expected OpPayloadSet, got %T", op.Payload)
 		}
@@ -145,19 +145,19 @@ func TestOpParserSET(t *testing.T) {
 
 	t.Run("Normal with bulk strings", func(t *testing.T) {
 		inp := []byte("*3\r\n$3\r\nSET\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		op, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
 
-		if op.Kind != src.SET {
+		if op.Kind != protocol.SET {
 			t.Errorf("Expected SET operation, got %v", op.Kind)
 		}
 
-		payload, ok := op.Payload.(src.OpPayloadSet)
+		payload, ok := op.Payload.(protocol.OpPayloadSet)
 		if !ok {
 			t.Fatalf("Expected OpPayloadSet, got %T", op.Payload)
 		}
@@ -173,15 +173,15 @@ func TestOpParserSET(t *testing.T) {
 
 	t.Run("Value with special characters", func(t *testing.T) {
 		inp := []byte("*3\r\n+SET\r\n+key\r\n$13\r\nhello\r\nworld!\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		op, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
 
-		payload, ok := op.Payload.(src.OpPayloadSet)
+		payload, ok := op.Payload.(protocol.OpPayloadSet)
 		if !ok {
 			t.Fatalf("Expected OpPayloadSet, got %T", op.Payload)
 		}
@@ -193,8 +193,8 @@ func TestOpParserSET(t *testing.T) {
 
 	t.Run("Too few arguments", func(t *testing.T) {
 		inp := []byte("*2\r\n+SET\r\n+key\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -207,8 +207,8 @@ func TestOpParserSET(t *testing.T) {
 
 	t.Run("Too many arguments", func(t *testing.T) {
 		inp := []byte("*4\r\n+SET\r\n+key\r\n+value\r\n+extra\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -218,8 +218,8 @@ func TestOpParserSET(t *testing.T) {
 
 	t.Run("Non-string key", func(t *testing.T) {
 		inp := []byte("*3\r\n+SET\r\n:123\r\n+value\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -232,8 +232,8 @@ func TestOpParserSET(t *testing.T) {
 
 	t.Run("Non-string value", func(t *testing.T) {
 		inp := []byte("*3\r\n+SET\r\n+key\r\n:456\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -248,19 +248,19 @@ func TestOpParserSET(t *testing.T) {
 func TestOpParserDELETE(t *testing.T) {
 	t.Run("Normal with simple strings", func(t *testing.T) {
 		inp := []byte("*2\r\n+DELETE\r\n+mykey\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		op, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
 
-		if op.Kind != src.DELETE {
+		if op.Kind != protocol.DELETE {
 			t.Errorf("Expected DELETE operation, got %v", op.Kind)
 		}
 
-		payload, ok := op.Payload.(src.OpPayloadDelete)
+		payload, ok := op.Payload.(protocol.OpPayloadDelete)
 		if !ok {
 			t.Fatalf("Expected OpPayloadDelete, got %T", op.Payload)
 		}
@@ -272,19 +272,19 @@ func TestOpParserDELETE(t *testing.T) {
 
 	t.Run("Normal with bulk strings", func(t *testing.T) {
 		inp := []byte("*2\r\n$6\r\nDELETE\r\n$8\r\ntodelete\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		op, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
 
-		if op.Kind != src.DELETE {
+		if op.Kind != protocol.DELETE {
 			t.Errorf("Expected DELETE operation, got %v", op.Kind)
 		}
 
-		payload, ok := op.Payload.(src.OpPayloadDelete)
+		payload, ok := op.Payload.(protocol.OpPayloadDelete)
 		if !ok {
 			t.Fatalf("Expected OpPayloadDelete, got %T", op.Payload)
 		}
@@ -296,8 +296,8 @@ func TestOpParserDELETE(t *testing.T) {
 
 	t.Run("Too few arguments", func(t *testing.T) {
 		inp := []byte("*1\r\n+DELETE\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -310,8 +310,8 @@ func TestOpParserDELETE(t *testing.T) {
 
 	t.Run("Too many arguments", func(t *testing.T) {
 		inp := []byte("*3\r\n+DELETE\r\n+key1\r\n+key2\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -321,8 +321,8 @@ func TestOpParserDELETE(t *testing.T) {
 
 	t.Run("Non-string key", func(t *testing.T) {
 		inp := []byte("*2\r\n+DELETE\r\n:789\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -337,8 +337,8 @@ func TestOpParserDELETE(t *testing.T) {
 func TestOpParserInvalidCases(t *testing.T) {
 	t.Run("Unknown operation type", func(t *testing.T) {
 		inp := []byte("*2\r\n+UNKNOWN\r\n+key\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -351,8 +351,8 @@ func TestOpParserInvalidCases(t *testing.T) {
 
 	t.Run("Empty array", func(t *testing.T) {
 		inp := []byte("*0\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -365,8 +365,8 @@ func TestOpParserInvalidCases(t *testing.T) {
 
 	t.Run("Non-array value", func(t *testing.T) {
 		inp := []byte("+NOTANARRAY\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -379,8 +379,8 @@ func TestOpParserInvalidCases(t *testing.T) {
 
 	t.Run("Integer as operation type", func(t *testing.T) {
 		inp := []byte("*2\r\n:123\r\n+key\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -393,8 +393,8 @@ func TestOpParserInvalidCases(t *testing.T) {
 
 	t.Run("Error as operation type", func(t *testing.T) {
 		inp := []byte("*2\r\n-ERR test\r\n+key\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		_, err := opParser.Parse()
 		if err == nil {
@@ -406,18 +406,18 @@ func TestOpParserInvalidCases(t *testing.T) {
 func TestOpParserMultipleOperations(t *testing.T) {
 	t.Run("Parse multiple operations in sequence", func(t *testing.T) {
 		inp := []byte("*2\r\n+GET\r\n+key1\r\n*3\r\n+SET\r\n+key2\r\n+value2\r\n*2\r\n+DELETE\r\n+key3\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(inp)
+		opParser := protocol.MakeOpParser(parser)
 
 		// First operation: GET
 		op1, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Parse 1 failed: %v", err)
 		}
-		if op1.Kind != src.GET {
+		if op1.Kind != protocol.GET {
 			t.Errorf("Expected first operation to be GET, got %v", op1.Kind)
 		}
-		payload1 := op1.Payload.(src.OpPayloadGet)
+		payload1 := op1.Payload.(protocol.OpPayloadGet)
 		if payload1.Key != "key1" {
 			t.Errorf("Expected key 'key1', got '%s'", payload1.Key)
 		}
@@ -427,10 +427,10 @@ func TestOpParserMultipleOperations(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Parse 2 failed: %v", err)
 		}
-		if op2.Kind != src.SET {
+		if op2.Kind != protocol.SET {
 			t.Errorf("Expected second operation to be SET, got %v", op2.Kind)
 		}
-		payload2 := op2.Payload.(src.OpPayloadSet)
+		payload2 := op2.Payload.(protocol.OpPayloadSet)
 		if payload2.Key != "key2" || payload2.Value != "value2" {
 			t.Errorf("Expected key 'key2' and value 'value2', got '%s' and '%s'", payload2.Key, payload2.Value)
 		}
@@ -440,10 +440,10 @@ func TestOpParserMultipleOperations(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Parse 3 failed: %v", err)
 		}
-		if op3.Kind != src.DELETE {
+		if op3.Kind != protocol.DELETE {
 			t.Errorf("Expected third operation to be DELETE, got %v", op3.Kind)
 		}
-		payload3 := op3.Payload.(src.OpPayloadDelete)
+		payload3 := op3.Payload.(protocol.OpPayloadDelete)
 		if payload3.Key != "key3" {
 			t.Errorf("Expected key 'key3', got '%s'", payload3.Key)
 		}
@@ -457,11 +457,11 @@ func TestOpParserMultipleOperations(t *testing.T) {
 }
 
 func TestOpRender(t *testing.T) {
-	renderParser := src.MakeOpParser(src.NewResp2ParserFromBytes(nil))
+	renderParser := protocol.MakeOpParser(protocol.NewResp2ParserFromBytes(nil))
 	t.Run("Render GET operation", func(t *testing.T) {
-		op := &src.Op{
-			Kind: src.GET,
-			Payload: src.OpPayloadGet{
+		op := &protocol.Op{
+			Kind: protocol.GET,
+			Payload: protocol.OpPayloadGet{
 				Key: "testkey",
 			},
 		}
@@ -472,27 +472,27 @@ func TestOpRender(t *testing.T) {
 		}
 
 		// Parse it back to verify
-		parser := src.NewResp2ParserFromBytes(data)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(data)
+		opParser := protocol.MakeOpParser(parser)
 		parsedOp, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Re-parse failed: %v", err)
 		}
 
-		if parsedOp.Kind != src.GET {
+		if parsedOp.Kind != protocol.GET {
 			t.Errorf("Expected GET operation, got %v", parsedOp.Kind)
 		}
 
-		payload := parsedOp.Payload.(src.OpPayloadGet)
+		payload := parsedOp.Payload.(protocol.OpPayloadGet)
 		if payload.Key != "testkey" {
 			t.Errorf("Expected key 'testkey', got '%s'", payload.Key)
 		}
 	})
 
 	t.Run("Render SET operation", func(t *testing.T) {
-		op := &src.Op{
-			Kind: src.SET,
-			Payload: src.OpPayloadSet{
+		op := &protocol.Op{
+			Kind: protocol.SET,
+			Payload: protocol.OpPayloadSet{
 				Key:   "mykey",
 				Value: "myvalue",
 			},
@@ -504,27 +504,27 @@ func TestOpRender(t *testing.T) {
 		}
 
 		// Parse it back to verify
-		parser := src.NewResp2ParserFromBytes(data)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(data)
+		opParser := protocol.MakeOpParser(parser)
 		parsedOp, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Re-parse failed: %v", err)
 		}
 
-		if parsedOp.Kind != src.SET {
+		if parsedOp.Kind != protocol.SET {
 			t.Errorf("Expected SET operation, got %v", parsedOp.Kind)
 		}
 
-		payload := parsedOp.Payload.(src.OpPayloadSet)
+		payload := parsedOp.Payload.(protocol.OpPayloadSet)
 		if payload.Key != "mykey" || payload.Value != "myvalue" {
 			t.Errorf("Expected key 'mykey' and value 'myvalue', got '%s' and '%s'", payload.Key, payload.Value)
 		}
 	})
 
 	t.Run("Render DELETE operation", func(t *testing.T) {
-		op := &src.Op{
-			Kind: src.DELETE,
-			Payload: src.OpPayloadDelete{
+		op := &protocol.Op{
+			Kind: protocol.DELETE,
+			Payload: protocol.OpPayloadDelete{
 				Key: "todelete",
 			},
 		}
@@ -535,27 +535,27 @@ func TestOpRender(t *testing.T) {
 		}
 
 		// Parse it back to verify
-		parser := src.NewResp2ParserFromBytes(data)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(data)
+		opParser := protocol.MakeOpParser(parser)
 		parsedOp, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Re-parse failed: %v", err)
 		}
 
-		if parsedOp.Kind != src.DELETE {
+		if parsedOp.Kind != protocol.DELETE {
 			t.Errorf("Expected DELETE operation, got %v", parsedOp.Kind)
 		}
 
-		payload := parsedOp.Payload.(src.OpPayloadDelete)
+		payload := parsedOp.Payload.(protocol.OpPayloadDelete)
 		if payload.Key != "todelete" {
 			t.Errorf("Expected key 'todelete', got '%s'", payload.Key)
 		}
 	})
 
 	t.Run("Render SET with special characters", func(t *testing.T) {
-		op := &src.Op{
-			Kind: src.SET,
-			Payload: src.OpPayloadSet{
+		op := &protocol.Op{
+			Kind: protocol.SET,
+			Payload: protocol.OpPayloadSet{
 				Key:   "key",
 				Value: "line1\r\nline2\r\nline3",
 			},
@@ -567,14 +567,14 @@ func TestOpRender(t *testing.T) {
 		}
 
 		// Parse it back to verify
-		parser := src.NewResp2ParserFromBytes(data)
-		opParser := src.MakeOpParser(parser)
+		parser := protocol.NewResp2ParserFromBytes(data)
+		opParser := protocol.MakeOpParser(parser)
 		parsedOp, err := opParser.Parse()
 		if err != nil {
 			t.Fatalf("Re-parse failed: %v", err)
 		}
 
-		payload := parsedOp.Payload.(src.OpPayloadSet)
+		payload := parsedOp.Payload.(protocol.OpPayloadSet)
 		if payload.Value != "line1\r\nline2\r\nline3" {
 			t.Errorf("Expected value with CRLF, got '%s'", payload.Value)
 		}

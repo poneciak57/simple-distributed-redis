@@ -1,4 +1,4 @@
-package src
+package protocol
 
 // RESP2 parser and renderer for byte streams.
 // reference: https://redis.io/docs/latest/develop/reference/protocol-spec/

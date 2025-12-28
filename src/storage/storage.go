@@ -1,4 +1,4 @@
-package src
+package storage
 
 // IMPORTANT! storage is not intended to be thread safe
 type Storage[T any] interface {

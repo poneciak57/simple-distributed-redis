@@ -1,19 +1,20 @@
 package tests
 
 import (
-	"main/src"
+	"main/src/protocol"
+	"main/src/storage"
 	"os"
 	"testing"
 )
 
-func RunWalTest_AppendAndReplay(t *testing.T, setup func() (src.Wal[string], func() (src.Wal[string], error), func())) {
+func RunWalTest_AppendAndReplay(t *testing.T, setup func() (storage.Wal[string], func() (storage.Wal[string], error), func())) {
 	wal, reopen, cleanup := setup()
 	defer cleanup()
 
-	entries := []src.WalEntry[string]{
-		{Index: 1, OpType: src.SET, Key: "key1", Value: "val1"},
-		{Index: 2, OpType: src.SET, Key: "key2", Value: "val2"},
-		{Index: 3, OpType: src.DELETE, Key: "key1"},
+	entries := []storage.WalEntry[string]{
+		{Index: 1, OpType: protocol.SET, Key: "key1", Value: "val1"},
+		{Index: 2, OpType: protocol.SET, Key: "key2", Value: "val2"},
+		{Index: 3, OpType: protocol.DELETE, Key: "key1"},
 	}
 
 	for _, e := range entries {
@@ -60,12 +61,12 @@ func RunWalTest_AppendAndReplay(t *testing.T, setup func() (src.Wal[string], fun
 	}
 }
 
-func RunWalTest_Rotate(t *testing.T, setup func() (src.Wal[string], func() (src.Wal[string], error), func())) {
+func RunWalTest_Rotate(t *testing.T, setup func() (storage.Wal[string], func() (storage.Wal[string], error), func())) {
 	wal, _, cleanup := setup()
 	defer cleanup()
 	defer wal.Close()
 
-	entry := src.WalEntry[string]{Index: 1, OpType: src.SET, Key: "k", Value: "v"}
+	entry := storage.WalEntry[string]{Index: 1, OpType: protocol.SET, Key: "k", Value: "v"}
 	wal.Append(entry, true)
 
 	oldWal, err := wal.Rotate()
@@ -89,7 +90,7 @@ func RunWalTest_Rotate(t *testing.T, setup func() (src.Wal[string], func() (src.
 	}
 
 	// Append to new wal
-	entry2 := src.WalEntry[string]{Index: 2, OpType: src.SET, Key: "k2", Value: "v2"}
+	entry2 := storage.WalEntry[string]{Index: 2, OpType: protocol.SET, Key: "k2", Value: "v2"}
 	if err := wal.Append(entry2, true); err != nil {
 		t.Fatalf("Append to new WAL failed: %v", err)
 	}
@@ -108,20 +109,20 @@ func RunWalTest_Rotate(t *testing.T, setup func() (src.Wal[string], func() (src.
 }
 
 func TestSimpleWal(t *testing.T) {
-	setup := func() (src.Wal[string], func() (src.Wal[string], error), func()) {
+	setup := func() (storage.Wal[string], func() (storage.Wal[string], error), func()) {
 		dir, err := os.MkdirTemp("", "wal_test")
 		if err != nil {
 			t.Fatal(err)
 		}
 		path := dir + "/wal.log"
 
-		wal, err := src.NewSimpleWal(path)
+		wal, err := storage.NewSimpleWal(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		reopen := func() (src.Wal[string], error) {
-			return src.NewSimpleWal(path)
+		reopen := func() (storage.Wal[string], error) {
+			return storage.NewSimpleWal(path)
 		}
 
 		cleanup := func() {

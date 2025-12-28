@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"main/src"
+	"main/src/protocol"
 	"testing"
 )
 
@@ -9,12 +9,12 @@ func TestResp2ParserSimpleText(t *testing.T) {
 
 	t.Run("Normal", func(t *testing.T) {
 		inp := []byte("+OK\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if instance, ok := op.(src.Resp2SimpleString); ok {
+		if instance, ok := op.(protocol.Resp2SimpleString); ok {
 			if string(instance) != "OK" {
 				t.Errorf("Expected 'OK', got '%s'", string(instance))
 			}
@@ -36,7 +36,7 @@ func TestResp2ParserSimpleText(t *testing.T) {
 
 	t.Run("Invalid CRLF", func(t *testing.T) {
 		inp := []byte("+OK\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		_, err := parser.Parse()
 		if err == nil {
 			t.Fatalf("Expected error on invalid CRLF")
@@ -45,7 +45,7 @@ func TestResp2ParserSimpleText(t *testing.T) {
 
 	t.Run("No termination", func(t *testing.T) {
 		inp := []byte("+OK")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		_, err := parser.Parse()
 		if err == nil {
 			t.Fatalf("Expected error on unterminated input")
@@ -56,12 +56,12 @@ func TestResp2ParserSimpleText(t *testing.T) {
 func TestResp2ParserError(t *testing.T) {
 	t.Run("Normal", func(t *testing.T) {
 		inp := []byte("-ERR something went wrong\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if instance, ok := op.(src.Resp2Error); ok {
+		if instance, ok := op.(protocol.Resp2Error); ok {
 			if string(instance) != "ERR something went wrong" {
 				t.Errorf("Expected 'ERR something went wrong', got '%s'", string(instance))
 			}
@@ -75,12 +75,12 @@ func TestResp2ParserError(t *testing.T) {
 func TestResp2ParserBulkString(t *testing.T) {
 	t.Run("Normal", func(t *testing.T) {
 		inp := []byte("$6\r\nfoobar\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if instance, ok := op.(src.Resp2BulkString); ok {
+		if instance, ok := op.(protocol.Resp2BulkString); ok {
 			if string(instance) != "foobar" {
 				t.Errorf("Expected 'foobar', got '%s'", string(instance))
 			}
@@ -91,19 +91,19 @@ func TestResp2ParserBulkString(t *testing.T) {
 
 	t.Run("Null Bulk String", func(t *testing.T) {
 		inp := []byte("$-1\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if bulkStr, ok := op.(src.Resp2BulkString); !ok || string(bulkStr) != "" {
+		if bulkStr, ok := op.(protocol.Resp2BulkString); !ok || string(bulkStr) != "" {
 			t.Errorf("Expected empty Resp2BulkString for null bulk string, got: %v (%T)", op, op)
 		}
 	})
 
 	t.Run("Invalid Length", func(t *testing.T) {
 		inp := []byte("$x\r\nfoobar\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		_, err := parser.Parse()
 		if err == nil {
 			t.Fatalf("Expected error on invalid length")
@@ -112,7 +112,7 @@ func TestResp2ParserBulkString(t *testing.T) {
 
 	t.Run("Insufficient Data", func(t *testing.T) {
 		inp := []byte("$6\r\nfoo\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		_, err := parser.Parse()
 		if err == nil {
 			t.Fatalf("Expected error on insufficient data")
@@ -121,12 +121,12 @@ func TestResp2ParserBulkString(t *testing.T) {
 
 	t.Run("CLRF as Data", func(t *testing.T) {
 		inp := []byte("$4\r\n\r\n\r\n\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if instance, ok := op.(src.Resp2BulkString); ok {
+		if instance, ok := op.(protocol.Resp2BulkString); ok {
 			if string(instance) != "\r\n\r\n" {
 				t.Errorf("Expected '\\r\\n\\r\\n', got '%s'", string(instance))
 			}
@@ -139,12 +139,12 @@ func TestResp2ParserBulkString(t *testing.T) {
 func TestResp2ParserInteger(t *testing.T) {
 	t.Run("Normal", func(t *testing.T) {
 		inp := []byte(":12345\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if instance, ok := op.(src.Resp2Integer); ok {
+		if instance, ok := op.(protocol.Resp2Integer); ok {
 			if int64(instance) != 12345 {
 				t.Errorf("Expected 12345, got %d", int64(instance))
 			}
@@ -155,12 +155,12 @@ func TestResp2ParserInteger(t *testing.T) {
 
 	t.Run("Plus Sign", func(t *testing.T) {
 		inp := []byte(":+123\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if instance, ok := op.(src.Resp2Integer); ok {
+		if instance, ok := op.(protocol.Resp2Integer); ok {
 			if int64(instance) != 123 {
 				t.Errorf("Expected 123, got %d", int64(instance))
 			}
@@ -171,7 +171,7 @@ func TestResp2ParserInteger(t *testing.T) {
 
 	t.Run("Invalid Integer", func(t *testing.T) {
 		inp := []byte(":12x34\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		_, err := parser.Parse()
 		if err == nil {
 			t.Fatalf("Expected error on invalid integer")
@@ -180,7 +180,7 @@ func TestResp2ParserInteger(t *testing.T) {
 
 	t.Run("Minus Sign Only", func(t *testing.T) {
 		inp := []byte(":-\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		_, err := parser.Parse()
 		if err == nil {
 			t.Fatalf("Expected error on invalid integer")
@@ -189,12 +189,12 @@ func TestResp2ParserInteger(t *testing.T) {
 
 	t.Run("Minus sign", func(t *testing.T) {
 		inp := []byte(":-123\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if instance, ok := op.(src.Resp2Integer); ok {
+		if instance, ok := op.(protocol.Resp2Integer); ok {
 			if int64(instance) != -123 {
 				t.Errorf("Expected -123, got %d", int64(instance))
 			}
@@ -208,17 +208,17 @@ func TestResp2ParserInteger(t *testing.T) {
 func TestResp2ParserArray(t *testing.T) {
 	t.Run("Normal", func(t *testing.T) {
 		inp := []byte("*3\r\n:1\r\n:2\r\n:3\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if instance, ok := op.([]src.Resp2Value); ok {
+		if instance, ok := op.([]protocol.Resp2Value); ok {
 			if len(instance) != 3 {
 				t.Errorf("Expected array of length 3, got %d", len(instance))
 			} else {
 				for i, v := range instance {
-					if num, ok := v.(src.Resp2Integer); ok {
+					if num, ok := v.(protocol.Resp2Integer); ok {
 						expected := int64(i + 1)
 						if int64(num) != expected {
 							t.Errorf("Expected element %d to be %d, got %d", i, expected, int64(num))
@@ -235,7 +235,7 @@ func TestResp2ParserArray(t *testing.T) {
 
 	t.Run("Null Array", func(t *testing.T) {
 		inp := []byte("*-1\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		op, err := parser.Parse()
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
@@ -247,7 +247,7 @@ func TestResp2ParserArray(t *testing.T) {
 
 	t.Run("Invalid Length", func(t *testing.T) {
 		inp := []byte("*x\r\n:1\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		_, err := parser.Parse()
 		if err == nil {
 			t.Fatalf("Expected error on invalid array length")
@@ -256,7 +256,7 @@ func TestResp2ParserArray(t *testing.T) {
 
 	t.Run("Insufficient Elements", func(t *testing.T) {
 		inp := []byte("*3\r\n:1\r\n:2\r\n")
-		parser := src.NewResp2ParserFromBytes(inp)
+		parser := protocol.NewResp2ParserFromBytes(inp)
 		_, err := parser.Parse()
 		if err == nil {
 			t.Fatalf("Expected error on insufficient array elements")
@@ -266,7 +266,7 @@ func TestResp2ParserArray(t *testing.T) {
 
 func TestResp2Renderer(t *testing.T) {
 	t.Run("Simple String", func(t *testing.T) {
-		renderer := src.NewResp2ParserFromBytes(nil)
+		renderer := protocol.NewResp2ParserFromBytes(nil)
 		value := "Hello, World!"
 		data, err := renderer.Render(value)
 		if err != nil {
@@ -279,7 +279,7 @@ func TestResp2Renderer(t *testing.T) {
 	})
 
 	t.Run("Integer", func(t *testing.T) {
-		renderer := src.NewResp2ParserFromBytes(nil)
+		renderer := protocol.NewResp2ParserFromBytes(nil)
 		value := int64(12345)
 		data, err := renderer.Render(value)
 		if err != nil {
@@ -292,7 +292,7 @@ func TestResp2Renderer(t *testing.T) {
 	})
 
 	t.Run("Bulk String", func(t *testing.T) {
-		renderer := src.NewResp2ParserFromBytes(nil)
+		renderer := protocol.NewResp2ParserFromBytes(nil)
 		value := "foo\r\nbar"
 		data, err := renderer.Render(value)
 		if err != nil {
@@ -305,8 +305,8 @@ func TestResp2Renderer(t *testing.T) {
 	})
 
 	t.Run("Array", func(t *testing.T) {
-		renderer := src.NewResp2ParserFromBytes(nil)
-		value := []src.Resp2Value{int64(1), "two", int64(3)}
+		renderer := protocol.NewResp2ParserFromBytes(nil)
+		value := []protocol.Resp2Value{int64(1), "two", int64(3)}
 		data, err := renderer.Render(value)
 		if err != nil {
 			t.Fatalf("Render failed: %v", err)
@@ -318,7 +318,7 @@ func TestResp2Renderer(t *testing.T) {
 	})
 
 	t.Run("Null Bulk String", func(t *testing.T) {
-		renderer := src.NewResp2ParserFromBytes(nil)
+		renderer := protocol.NewResp2ParserFromBytes(nil)
 		value := ""
 		data, err := renderer.Render(value)
 		if err != nil {
@@ -331,8 +331,8 @@ func TestResp2Renderer(t *testing.T) {
 	})
 
 	t.Run("Null Array", func(t *testing.T) {
-		renderer := src.NewResp2ParserFromBytes(nil)
-		var value []src.Resp2Value = nil
+		renderer := protocol.NewResp2ParserFromBytes(nil)
+		var value []protocol.Resp2Value = nil
 		data, err := renderer.Render(value)
 		if err != nil {
 			t.Fatalf("Render failed: %v", err)

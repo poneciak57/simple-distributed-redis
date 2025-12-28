@@ -2,13 +2,13 @@ package tests
 
 import (
 	"fmt"
-	"main/src"
+	"main/src/storage"
 	"testing"
 )
 
 // RunStorageTests defines the contract tests for the Storage interface.
 // Any implementation of Storage should pass these tests.
-func RunStorageTests(t *testing.T, s src.Storage[string]) {
+func RunStorageTests(t *testing.T, s storage.Storage[string]) {
 	t.Helper()
 
 	t.Run("Set and Get", func(t *testing.T) {
@@ -114,6 +114,6 @@ func RunStorageTests(t *testing.T, s src.Storage[string]) {
 }
 
 func TestInMemoryStorage(t *testing.T) {
-	storage := src.MakeInMemoryStorage[string]()
+	storage := storage.MakeInMemoryStorage[string]()
 	RunStorageTests(t, storage)
 }

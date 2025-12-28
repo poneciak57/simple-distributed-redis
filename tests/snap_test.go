@@ -1,23 +1,24 @@
 package tests
 
 import (
-	"main/src"
+	"main/src/protocol"
+	"main/src/storage"
 	"os"
 	"testing"
 )
 
 func RunSnapshotterTest_SnapshotAndLoad(t *testing.T,
-	createSnapshotter func() (src.Snapshoter[string], func()),
-	createWal func() (src.Wal[string], func())) {
+	createSnapshotter func() (storage.Snapshoter[string], func()),
+	createWal func() (storage.Wal[string], func())) {
 
 	wal, cleanupWal := createWal()
 	defer cleanupWal()
 	defer wal.Close()
 
 	// Add some entries to WAL
-	wal.Append(src.WalEntry[string]{OpType: src.SET, Key: "key1", Value: "val1"}, true)
-	wal.Append(src.WalEntry[string]{OpType: src.SET, Key: "key2", Value: "val2"}, true)
-	wal.Append(src.WalEntry[string]{OpType: src.DELETE, Key: "key1"}, true)
+	wal.Append(storage.WalEntry[string]{OpType: protocol.SET, Key: "key1", Value: "val1"}, true)
+	wal.Append(storage.WalEntry[string]{OpType: protocol.SET, Key: "key2", Value: "val2"}, true)
+	wal.Append(storage.WalEntry[string]{OpType: protocol.DELETE, Key: "key1"}, true)
 
 	snapper, cleanupSnap := createSnapshotter()
 	defer cleanupSnap()
@@ -48,15 +49,15 @@ func RunSnapshotterTest_SnapshotAndLoad(t *testing.T,
 }
 
 func RunSnapshotterTest_IncrementalSnapshot(t *testing.T,
-	createSnapshotter func() (src.Snapshoter[string], func()),
-	createWal func() (src.Wal[string], func())) {
+	createSnapshotter func() (storage.Snapshoter[string], func()),
+	createWal func() (storage.Wal[string], func())) {
 
 	snapper, cleanupSnap := createSnapshotter()
 	defer cleanupSnap()
 
 	// 1. WAL 1
 	wal1, cleanupWal1 := createWal()
-	wal1.Append(src.WalEntry[string]{OpType: src.SET, Key: "base", Value: "data"}, true)
+	wal1.Append(storage.WalEntry[string]{OpType: protocol.SET, Key: "base", Value: "data"}, true)
 
 	if err := snapper.Snapshot(wal1); err != nil {
 		t.Fatal(err)
@@ -66,8 +67,8 @@ func RunSnapshotterTest_IncrementalSnapshot(t *testing.T,
 
 	// 2. WAL 2
 	wal2, cleanupWal2 := createWal()
-	wal2.Append(src.WalEntry[string]{OpType: src.SET, Key: "new", Value: "stuff"}, true)
-	wal2.Append(src.WalEntry[string]{OpType: src.DELETE, Key: "base"}, true)
+	wal2.Append(storage.WalEntry[string]{OpType: protocol.SET, Key: "new", Value: "stuff"}, true)
+	wal2.Append(storage.WalEntry[string]{OpType: protocol.DELETE, Key: "base"}, true)
 
 	if err := snapper.Snapshot(wal2); err != nil {
 		t.Fatal(err)
@@ -90,7 +91,7 @@ func RunSnapshotterTest_IncrementalSnapshot(t *testing.T,
 }
 
 func TestSimpleSnapshotter(t *testing.T) {
-	createWal := func() (src.Wal[string], func()) {
+	createWal := func() (storage.Wal[string], func()) {
 		f, err := os.CreateTemp("", "wal_test_*.log")
 		if err != nil {
 			t.Fatal(err)
@@ -98,7 +99,7 @@ func TestSimpleSnapshotter(t *testing.T) {
 		name := f.Name()
 		f.Close()
 
-		wal, err := src.NewSimpleWal(name)
+		wal, err := storage.NewSimpleWal(name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -107,7 +108,7 @@ func TestSimpleSnapshotter(t *testing.T) {
 		}
 	}
 
-	createSnapshotter := func() (src.Snapshoter[string], func()) {
+	createSnapshotter := func() (storage.Snapshoter[string], func()) {
 		f, err := os.CreateTemp("", "snap_test_*.bin")
 		if err != nil {
 			t.Fatal(err)
@@ -116,7 +117,7 @@ func TestSimpleSnapshotter(t *testing.T) {
 		f.Close()
 		os.Remove(name) // Ensure it doesn't exist initially
 
-		snapper := src.NewSimpleSnapshotter[string](name)
+		snapper := storage.NewSimpleSnapshotter[string](name)
 		return snapper, func() {
 			os.Remove(name)
 		}

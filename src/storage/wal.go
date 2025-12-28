@@ -1,4 +1,4 @@
-package src
+package storage
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
+	"main/src/protocol"
 	"os"
 	"time"
 )
@@ -20,7 +21,7 @@ type WalEntry[T any] struct {
 	Index     uint64 // Monotonically increasing index
 	Timestamp int64
 	Term      Term
-	OpType    OpType
+	OpType    protocol.OpType
 	Key       string
 	Value     T
 }
