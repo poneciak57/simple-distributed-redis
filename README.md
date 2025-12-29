@@ -95,6 +95,12 @@ TBD
 make test
 ```
 
+### Redis-cli compatibility
+You can use `redis-cli` to interact with the server once it's running. Hovewer note that
+it is not intended for production use. This is just for learning purposes and support might be limited to more
+than just RESP2 protocol compatibility. I tested basic commands like `SET`, `GET`, `DEL`, `PING`, etc.
+
+
 ## 🛠️ Development
 
 ### Project Structure
@@ -108,8 +114,8 @@ TBD
 - [x] WAL implementation
 
 **Phase 2: Single Node**
-- [ ] TCP server
-- [ ] Command execution
+- [x] TCP server
+- [x] Command execution
 - [ ] Health checks
 
 **Phase 3: Consensus**

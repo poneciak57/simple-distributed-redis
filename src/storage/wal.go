@@ -8,6 +8,7 @@ import (
 	"io"
 	"main/src/protocol"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -56,6 +57,12 @@ type SimpleWal struct {
 
 // NewSimpleWal creates a new instance of SimpleWal.
 func NewSimpleWal(filePath string) (*SimpleWal, error) {
+	// Ensure directory exists
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, err
+	}
+
 	fd, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return nil, err

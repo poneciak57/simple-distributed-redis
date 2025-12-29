@@ -8,6 +8,7 @@ import (
 	"io"
 	"main/src/protocol"
 	"os"
+	"path/filepath"
 )
 
 type Snapshoter[T any] interface {
@@ -93,6 +94,11 @@ func (s *SimpleSnapshotter[T]) Snapshot(wal Wal[T]) error {
 }
 
 func snapshot[T any](snapshotPath string, store Storage[T]) error {
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(snapshotPath), 0755); err != nil {
+		return err
+	}
+
 	// Create temp file
 	fd, err := os.OpenFile(snapshotPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {

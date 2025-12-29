@@ -3,17 +3,20 @@ package service
 import (
 	"main/src/config"
 	"main/src/storage"
+	"sync"
 	"time"
 )
 
 // Responsible for handling storage related services
 // makes snapshots, manages storage and wal
 // TODO it might be temporary or will be changed after consensus implementation
+// Ideal implementation will not use mutex but rely more on channels
 type StorageService struct {
 	wal          storage.Wal[string]
 	snapshotter  storage.Snapshoter[string]
 	storage      storage.Storage[string]
 	cfg          *config.Config
+	mu           sync.RWMutex
 	lastSnapTime int64
 }
 
@@ -43,6 +46,7 @@ func NewStorageService(config *config.Config) *StorageService {
 		storage:      storageInstance,
 		cfg:          config,
 		lastSnapTime: time.Now().Unix(),
+		mu:           sync.RWMutex{},
 	}
 }
 
@@ -69,6 +73,8 @@ func (s *StorageService) SnapshotIfNeeded() error {
 }
 
 func (s *StorageService) Set(key, value string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	err := s.wal.Append(storage.WalEntry[string]{
 		Key:   key,
 		Value: value,
@@ -80,10 +86,14 @@ func (s *StorageService) Set(key, value string) error {
 }
 
 func (s *StorageService) Get(key string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.storage.Get(key)
 }
 
 func (s *StorageService) Delete(key string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	err := s.wal.Append(storage.WalEntry[string]{
 		Key:   key,
 		Value: "",
@@ -95,5 +105,7 @@ func (s *StorageService) Delete(key string) error {
 }
 
 func (s *StorageService) Exists(key string) (bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.storage.Exists(key)
 }

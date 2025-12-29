@@ -53,10 +53,10 @@
 
 ### 2.1 TCP Server
 **Deliverables**:
-- [ ] TCP listener on configurable port
-- [ ] Connection handling (accept, read, write)
-- [ ] RESP2 protocol integration
-- [ ] Graceful shutdown
+- [x] TCP listener on configurable port
+- [x] Connection handling (accept, read, write)
+- [x] RESP2 protocol integration
+- [x] Graceful shutdown
 - [ ] Connection pooling and limits
 - [ ] Timeout handling
 
