@@ -9,7 +9,7 @@ main: build
 	go run main.go
 
 test:
-	go test ./tests -v
+	go test -race -v ./tests
 
 clean:
 	rm -rf bin/
