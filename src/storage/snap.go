@@ -1,9 +1,6 @@
 package storage
 
 import (
-	"bytes"
-	"encoding/binary"
-	"encoding/gob"
 	"fmt"
 	"io"
 	"main/src/protocol"
@@ -47,10 +44,10 @@ func (s *SimpleSnapshotter[T]) LoadSnapshot() (Storage[T], error) {
 	defer fd.Close()
 
 	store := MakeInMemoryStorage[T]()
+	parser := protocol.NewResp2Parser(fd)
 
 	for {
-		var size int64
-		err := binary.Read(fd, binary.LittleEndian, &size)
+		val, err := parser.Parse()
 		if err == io.EOF {
 			break
 		}
@@ -58,17 +55,31 @@ func (s *SimpleSnapshotter[T]) LoadSnapshot() (Storage[T], error) {
 			return nil, err
 		}
 
-		data := make([]byte, size)
-		_, err = io.ReadFull(fd, data)
-		if err != nil {
-			return nil, err
+		arr, ok := val.([]protocol.Resp2Value)
+		if !ok {
+			return nil, fmt.Errorf("invalid snapshot entry format: expected array")
 		}
 
-		var entry SnapshotEntry[T]
-		if err := gob.NewDecoder(bytes.NewReader(data)).Decode(&entry); err != nil {
-			return nil, err
+		if len(arr) != 2 {
+			return nil, fmt.Errorf("invalid snapshot entry format: expected 2 elements, got %d", len(arr))
 		}
-		store.Set(entry.Key, entry.Value)
+
+		key, ok := arr[0].(protocol.Resp2BulkString)
+		if !ok {
+			return nil, fmt.Errorf("invalid snapshot entry format: expected bulk string for Key")
+		}
+
+		value := arr[1]
+		var tValue T
+		if value != nil {
+			var ok bool
+			tValue, ok = value.(T)
+			if !ok {
+				return nil, fmt.Errorf("invalid snapshot entry format: expected value of type %T", *new(T))
+			}
+		}
+
+		store.Set(string(key), tValue)
 	}
 
 	return store, nil
@@ -106,31 +117,34 @@ func snapshot[T any](snapshotPath string, store Storage[T]) error {
 	}
 	defer fd.Close()
 
+	parser := protocol.NewResp2Parser(nil)
+
 	// Write all key-value pairs to snapshot file
-	for k, v := range store.Iterator() {
-		entry := SnapshotEntry[T]{
-			Key:   k,
-			Value: v,
+	var writeErr error
+	store.Iterator()(func(k string, v T) bool {
+		arr := []protocol.Resp2Value{
+			protocol.Resp2BulkString(k),
+			v,
 		}
-		var buf bytes.Buffer
-		// Use gob for easy serialization
-		if err := gob.NewEncoder(&buf).Encode(entry); err != nil {
-			return err
-		}
-
-		payload := buf.Bytes()
-		size := int64(len(payload))
-
-		if err := binary.Write(fd, binary.LittleEndian, size); err != nil {
-			return err
+		payload, err := parser.Render(arr)
+		if err != nil {
+			writeErr = err
+			return false
 		}
 
 		// Write to file
-		_, err := fd.Write(payload)
+		_, err = fd.Write(payload)
 		if err != nil {
-			return err
+			writeErr = err
+			return false
 		}
+		return true
+	})
+
+	if writeErr != nil {
+		return writeErr
 	}
+
 	// Sync to ensure data is flushed
 	if err := fd.Sync(); err != nil {
 		return err

@@ -96,8 +96,8 @@ func TestResp2ParserBulkString(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
-		if bulkStr, ok := op.(protocol.Resp2BulkString); !ok || string(bulkStr) != "" {
-			t.Errorf("Expected empty Resp2BulkString for null bulk string, got: %v (%T)", op, op)
+		if op != nil {
+			t.Errorf("Expected nil for null bulk string, got: %v (%T)", op, op)
 		}
 	})
 
@@ -319,12 +319,25 @@ func TestResp2Renderer(t *testing.T) {
 
 	t.Run("Null Bulk String", func(t *testing.T) {
 		renderer := protocol.NewResp2ParserFromBytes(nil)
-		value := ""
+		var value interface{} = nil
 		data, err := renderer.Render(value)
 		if err != nil {
 			t.Fatalf("Render failed: %v", err)
 		}
 		expected := []byte("$-1\r\n")
+		if string(data) != string(expected) {
+			t.Errorf("Expected %q, got %q", string(expected), string(data))
+		}
+	})
+
+	t.Run("Empty Bulk String", func(t *testing.T) {
+		renderer := protocol.NewResp2ParserFromBytes(nil)
+		value := protocol.Resp2BulkString("")
+		data, err := renderer.Render(value)
+		if err != nil {
+			t.Fatalf("Render failed: %v", err)
+		}
+		expected := []byte("$0\r\n\r\n")
 		if string(data) != string(expected) {
 			t.Errorf("Expected %q, got %q", string(expected), string(data))
 		}

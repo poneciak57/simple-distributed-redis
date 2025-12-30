@@ -16,7 +16,7 @@ type OpPayloadPing struct {
 
 type OpPayloadSet struct {
 	Key   string
-	Value string
+	Value Resp2Value
 }
 
 type OpPayloadGet struct {
@@ -107,15 +107,14 @@ func (p *OpParser) Parse() (*Op, error) {
 			return nil, fmt.Errorf("SET operation requires 2 arguments")
 		}
 		key := extractString(array[1])
-		value := extractString(array[2])
-		if (key == "" && array[1] != nil) || (value == "" && array[2] != nil) {
-			return nil, fmt.Errorf("SET operation key and value must be strings")
+		if key == "" && array[1] != nil {
+			return nil, fmt.Errorf("SET operation key must be a string")
 		}
 		return &Op{
 			Kind: SET,
 			Payload: OpPayloadSet{
 				Key:   key,
-				Value: value,
+				Value: array[2],
 			},
 		}, nil
 	case "DELETE":
@@ -161,7 +160,7 @@ func (p *OpParser) Render(op *Op) ([]byte, error) {
 		array = Resp2Array{
 			Resp2SimpleString("SET"),
 			Resp2BulkString(payload.Key),
-			Resp2BulkString(payload.Value),
+			payload.Value,
 		}
 	case DELETE:
 		payload := op.Payload.(OpPayloadDelete)

@@ -2,6 +2,7 @@ package service
 
 import (
 	"main/src/config"
+	"main/src/protocol"
 	"main/src/storage"
 	"sync"
 	"time"
@@ -12,17 +13,17 @@ import (
 // TODO it might be temporary or will be changed after consensus implementation
 // Ideal implementation will not use mutex but rely more on channels
 type StorageService struct {
-	wal          storage.Wal[string]
-	snapshotter  storage.Snapshoter[string]
-	storage      storage.Storage[string]
+	wal          storage.Wal[protocol.Resp2Value]
+	snapshotter  storage.Snapshoter[protocol.Resp2Value]
+	storage      storage.Storage[protocol.Resp2Value]
 	cfg          *config.Config
 	mu           sync.RWMutex
 	lastSnapTime int64
 }
 
 func NewStorageService(config *config.Config) *StorageService {
-	snapshotter := storage.NewSimpleSnapshotter[string](config.Snapshot.Path)
-	wal, err := storage.NewSimpleWal(config.WAL.Path)
+	snapshotter := storage.NewSimpleSnapshotter[protocol.Resp2Value](config.Snapshot.Path)
+	wal, err := storage.NewSimpleWal[protocol.Resp2Value](config.WAL.Path)
 	if err != nil {
 		panic(err)
 	}
@@ -72,10 +73,10 @@ func (s *StorageService) SnapshotIfNeeded() error {
 	return nil
 }
 
-func (s *StorageService) Set(key, value string) error {
+func (s *StorageService) Set(key string, value protocol.Resp2Value) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	err := s.wal.Append(storage.WalEntry[string]{
+	err := s.wal.Append(storage.WalEntry[protocol.Resp2Value]{
 		Key:   key,
 		Value: value,
 	}, true)
@@ -85,7 +86,7 @@ func (s *StorageService) Set(key, value string) error {
 	return s.storage.Set(key, value)
 }
 
-func (s *StorageService) Get(key string) (string, error) {
+func (s *StorageService) Get(key string) (protocol.Resp2Value, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.storage.Get(key)
@@ -94,9 +95,9 @@ func (s *StorageService) Get(key string) (string, error) {
 func (s *StorageService) Delete(key string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	err := s.wal.Append(storage.WalEntry[string]{
+	err := s.wal.Append(storage.WalEntry[protocol.Resp2Value]{
 		Key:   key,
-		Value: "",
+		Value: nil,
 	}, true)
 	if err != nil {
 		return err

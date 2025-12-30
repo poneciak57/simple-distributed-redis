@@ -107,7 +107,7 @@ func TestRedisService_SimpleCommands(t *testing.T) {
 		{
 			name:     "GET deleted key",
 			input:    "*2\r\n$3\r\nGET\r\n$3\r\nkey\r\n",
-			expected: "$0\r\n\r\n",
+			expected: "$-1\r\n",
 		},
 	}
 

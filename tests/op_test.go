@@ -138,8 +138,12 @@ func TestOpParserSET(t *testing.T) {
 			t.Errorf("Expected key 'mykey', got '%s'", payload.Key)
 		}
 
-		if payload.Value != "myvalue" {
-			t.Errorf("Expected value 'myvalue', got '%s'", payload.Value)
+		val, ok := payload.Value.(protocol.Resp2SimpleString)
+		if !ok {
+			t.Fatalf("Expected Resp2SimpleString value, got %T", payload.Value)
+		}
+		if string(val) != "myvalue" {
+			t.Errorf("Expected value 'myvalue', got '%s'", string(val))
 		}
 	})
 
@@ -166,8 +170,12 @@ func TestOpParserSET(t *testing.T) {
 			t.Errorf("Expected key 'key1', got '%s'", payload.Key)
 		}
 
-		if payload.Value != "value1" {
-			t.Errorf("Expected value 'value1', got '%s'", payload.Value)
+		val, ok := payload.Value.(protocol.Resp2BulkString)
+		if !ok {
+			t.Fatalf("Expected Resp2BulkString value, got %T", payload.Value)
+		}
+		if string(val) != "value1" {
+			t.Errorf("Expected value 'value1', got '%s'", string(val))
 		}
 	})
 
@@ -186,8 +194,12 @@ func TestOpParserSET(t *testing.T) {
 			t.Fatalf("Expected OpPayloadSet, got %T", op.Payload)
 		}
 
-		if payload.Value != "hello\r\nworld!" {
-			t.Errorf("Expected value 'hello\\r\\nworld!', got '%s'", payload.Value)
+		val, ok := payload.Value.(protocol.Resp2BulkString)
+		if !ok {
+			t.Fatalf("Expected Resp2BulkString value, got %T", payload.Value)
+		}
+		if string(val) != "hello\r\nworld!" {
+			t.Errorf("Expected value 'hello\\r\\nworld!', got '%s'", string(val))
 		}
 	})
 
@@ -225,7 +237,7 @@ func TestOpParserSET(t *testing.T) {
 		if err == nil {
 			t.Fatalf("Expected error for SET with non-string key")
 		}
-		if err.Error() != "SET operation key and value must be strings" {
+		if err.Error() != "SET operation key must be a string" {
 			t.Errorf("Unexpected error message: %v", err)
 		}
 	})
@@ -235,12 +247,22 @@ func TestOpParserSET(t *testing.T) {
 		parser := protocol.NewResp2ParserFromBytes(inp)
 		opParser := protocol.MakeOpParser(parser)
 
-		_, err := opParser.Parse()
-		if err == nil {
-			t.Fatalf("Expected error for SET with non-string value")
+		op, err := opParser.Parse()
+		if err != nil {
+			t.Fatalf("Parse failed: %v", err)
 		}
-		if err.Error() != "SET operation key and value must be strings" {
-			t.Errorf("Unexpected error message: %v", err)
+
+		payload, ok := op.Payload.(protocol.OpPayloadSet)
+		if !ok {
+			t.Fatalf("Expected OpPayloadSet, got %T", op.Payload)
+		}
+
+		val, ok := payload.Value.(protocol.Resp2Integer)
+		if !ok {
+			t.Fatalf("Expected Resp2Integer value, got %T", payload.Value)
+		}
+		if int64(val) != 456 {
+			t.Errorf("Expected value 456, got %d", val)
 		}
 	})
 }
@@ -431,8 +453,12 @@ func TestOpParserMultipleOperations(t *testing.T) {
 			t.Errorf("Expected second operation to be SET, got %v", op2.Kind)
 		}
 		payload2 := op2.Payload.(protocol.OpPayloadSet)
-		if payload2.Key != "key2" || payload2.Value != "value2" {
-			t.Errorf("Expected key 'key2' and value 'value2', got '%s' and '%s'", payload2.Key, payload2.Value)
+		val2, ok := payload2.Value.(protocol.Resp2SimpleString)
+		if !ok {
+			t.Fatalf("Expected Resp2SimpleString value, got %T", payload2.Value)
+		}
+		if payload2.Key != "key2" || string(val2) != "value2" {
+			t.Errorf("Expected key 'key2' and value 'value2', got '%s' and '%s'", payload2.Key, string(val2))
 		}
 
 		// Third operation: DELETE
@@ -516,8 +542,18 @@ func TestOpRender(t *testing.T) {
 		}
 
 		payload := parsedOp.Payload.(protocol.OpPayloadSet)
-		if payload.Key != "mykey" || payload.Value != "myvalue" {
-			t.Errorf("Expected key 'mykey' and value 'myvalue', got '%s' and '%s'", payload.Key, payload.Value)
+		val, ok := payload.Value.(protocol.Resp2SimpleString)
+		if !ok {
+			// It might be bulk string depending on implementation details of Render
+			// But "myvalue" is short and no special chars, so likely SimpleString if Render supports it
+			// Actually Render implementation for string:
+			// if len(v) == 0 { ... } else if containsCRLF(v) || len(v) > 512 { ... } return ... SimpleString
+			// So it should be SimpleString
+			t.Fatalf("Expected Resp2SimpleString value, got %T", payload.Value)
+		}
+
+		if payload.Key != "mykey" || string(val) != "myvalue" {
+			t.Errorf("Expected key 'mykey' and value 'myvalue', got '%s' and '%s'", payload.Key, string(val))
 		}
 	})
 
@@ -575,8 +611,13 @@ func TestOpRender(t *testing.T) {
 		}
 
 		payload := parsedOp.Payload.(protocol.OpPayloadSet)
-		if payload.Value != "line1\r\nline2\r\nline3" {
-			t.Errorf("Expected value with CRLF, got '%s'", payload.Value)
+		val, ok := payload.Value.(protocol.Resp2BulkString)
+		if !ok {
+			t.Fatalf("Expected Resp2BulkString value, got %T", payload.Value)
+		}
+
+		if string(val) != "line1\r\nline2\r\nline3" {
+			t.Errorf("Expected value with CRLF, got '%s'", string(val))
 		}
 	})
 }

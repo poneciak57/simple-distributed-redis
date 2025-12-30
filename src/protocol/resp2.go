@@ -80,37 +80,37 @@ func (p *Resp2Parser) parseInteger() (Resp2Integer, error) {
 	return Resp2Integer(value), nil
 }
 
-func (p *Resp2Parser) parseBulkString() (Resp2BulkString, error) {
+func (p *Resp2Parser) parseBulkString() (Resp2Value, error) {
 	lengthBytes, err := p.parseUntilCRLF()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	lengthStr := string(lengthBytes)
 	length, err := strconv.ParseInt(lengthStr, 10, 64)
 	if err != nil {
-		return "", fmt.Errorf("invalid bulk string length: %s", lengthStr)
+		return nil, fmt.Errorf("invalid bulk string length: %s", lengthStr)
 	}
 	if length == -1 {
 		// Null bulk string
-		return "", nil
+		return nil, nil
 	}
 	if length < -1 {
-		return "", fmt.Errorf("invalid bulk string length: %d", length)
+		return nil, fmt.Errorf("invalid bulk string length: %d", length)
 	}
 	// Read exact number of bytes
 	strBytes := make([]byte, length)
 	_, err = io.ReadFull(p.reader, strBytes)
 	if err != nil {
-		return "", fmt.Errorf("bulk string data too short: %w", err)
+		return nil, fmt.Errorf("bulk string data too short: %w", err)
 	}
 	// Expect CRLF
 	crlf := make([]byte, 2)
 	_, err = io.ReadFull(p.reader, crlf)
 	if err != nil {
-		return "", fmt.Errorf("missing CRLF after bulk string: %w", err)
+		return nil, fmt.Errorf("missing CRLF after bulk string: %w", err)
 	}
 	if crlf[0] != '\r' || crlf[1] != '\n' {
-		return "", fmt.Errorf("invalid bulk string termination")
+		return nil, fmt.Errorf("invalid bulk string termination")
 	}
 	return Resp2BulkString(strBytes), nil
 }
@@ -144,9 +144,17 @@ func (p *Resp2Parser) parseArray() (Resp2Value, error) {
 }
 
 func (p *Resp2Parser) Parse() (Resp2Value, error) {
-	kindByte, err := p.reader.ReadByte()
-	if err != nil {
-		return nil, err
+	var kindByte byte
+	var err error
+	for {
+		kindByte, err = p.reader.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+		// Skip whitespace/newlines between commands
+		if kindByte != '\r' && kindByte != '\n' && kindByte != ' ' && kindByte != '\t' {
+			break
+		}
 	}
 
 	kind := kindByte
@@ -162,7 +170,7 @@ func (p *Resp2Parser) Parse() (Resp2Value, error) {
 	case '*': // Array
 		return p.parseArray()
 	default:
-		return nil, fmt.Errorf("unknown RESP2 type: %c", kind)
+		return nil, fmt.Errorf("unknown RESP2 type: %q (%d)", kind, kind)
 	}
 }
 
@@ -195,17 +203,11 @@ func (p *Resp2Parser) Render(value Resp2Value) ([]byte, error) {
 	case Resp2SimpleString:
 		return []byte("+" + string(v) + "\r\n"), nil
 	case Resp2BulkString:
-		if len(v) == 0 {
-			// Null bulk string
-			return []byte("$-1\r\n"), nil
-		}
 		return []byte("$" + strconv.Itoa(len(v)) + "\r\n" + string(v) + "\r\n"), nil
 	case string:
 		// For backwards compatibility: treat plain strings as bulk strings
 		// Check if it contains CRLF or is long
-		if len(v) == 0 {
-			return []byte("$-1\r\n"), nil
-		} else if containsCRLF(v) || len(v) > 512 {
+		if containsCRLF(v) || len(v) > 512 {
 			return []byte("$" + strconv.Itoa(len(v)) + "\r\n" + v + "\r\n"), nil
 		}
 		// Simple string for short strings without CRLF
@@ -221,8 +223,8 @@ func (p *Resp2Parser) Render(value Resp2Value) ([]byte, error) {
 		// For convenience
 		return []byte(":" + strconv.FormatInt(int64(v), 10) + "\r\n"), nil
 	case nil:
-		// Null array
-		return []byte("*-1\r\n"), nil
+		// Null Bulk String
+		return []byte("$-1\r\n"), nil
 	case Resp2Array:
 		return p.renderArray([]Resp2Value(v))
 	case []Resp2Value:

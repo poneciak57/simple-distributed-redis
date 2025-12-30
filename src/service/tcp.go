@@ -47,6 +47,7 @@ func (s *TcpServiceManager) loop(l net.Listener) {
 		go func() {
 			err := s.service.OnMessage(conn)
 			if err != nil {
+				fmt.Printf("Error handling message: %v\n", err)
 				atomic.AddInt64(&s.metrics.OnMessageErrors, 1)
 			}
 			atomic.AddInt64(&s.metrics.InFlightRequests, -1)
