@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"main/src/protocol"
 	"testing"
 )
@@ -353,6 +354,41 @@ func TestResp2Renderer(t *testing.T) {
 		expected := []byte("*-1\r\n")
 		if string(data) != string(expected) {
 			t.Errorf("Expected %q, got %q", string(expected), string(data))
+		}
+	})
+}
+
+func TestResp2ParserLimits(t *testing.T) {
+	t.Run("SimpleStringTooLong", func(t *testing.T) {
+		// Limit 10 bytes. "+1234567890" is 11 bytes + CRLF
+		inp := []byte("+1234567890\r\n")
+		parser := protocol.NewResp2Parser(bytes.NewReader(inp), 10)
+		_, err := parser.Parse()
+		if err == nil {
+			t.Fatal("Expected error for message too large")
+		}
+	})
+
+	t.Run("BulkStringLengthTooLong", func(t *testing.T) {
+		// $100\r\n...
+		// 6 bytes header. Limit 10.
+		// 6 + 100 = 106 > 10. Should fail.
+		inp := []byte("$100\r\n")
+		parser := protocol.NewResp2Parser(bytes.NewReader(inp), 10)
+		_, err := parser.Parse()
+		if err == nil {
+			t.Fatal("Expected error for bulk string length exceeding limit")
+		}
+	})
+
+	t.Run("BulkStringContentTooLong", func(t *testing.T) {
+		// $10\r\n12345678901\r\n
+		// Limit 10.
+		inp := []byte("$10\r\n1234567890\r\n")
+		parser := protocol.NewResp2Parser(bytes.NewReader(inp), 10)
+		_, err := parser.Parse()
+		if err == nil {
+			t.Fatal("Expected error for bulk string content exceeding limit")
 		}
 	})
 }

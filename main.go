@@ -24,7 +24,7 @@ func main() {
 
 	storageService := service.NewStorageService(cfg, log.Named("StorageService"))
 	redisService := service.NewRedisServices(storageService, cfg, log.Named("RedisService"))
-	tcpManager := service.NewTcpServiceManager(redisService)
+	tcpManager := service.NewTcpServiceManager(redisService, cfg, log.Named("TcpServiceManager"))
 	if err := tcpManager.Start(); err != nil {
 		panic(err)
 	}

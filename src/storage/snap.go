@@ -44,7 +44,7 @@ func (s *SimpleSnapshotter[T]) LoadSnapshot() (Storage[T], error) {
 	defer fd.Close()
 
 	store := MakeInMemoryStorage[T]()
-	parser := protocol.NewResp2Parser(fd)
+	parser := protocol.NewResp2Parser(fd, 0)
 
 	for {
 		val, err := parser.Parse()
@@ -117,7 +117,7 @@ func snapshot[T any](snapshotPath string, store Storage[T]) error {
 	}
 	defer fd.Close()
 
-	parser := protocol.NewResp2Parser(nil)
+	parser := protocol.NewResp2Parser(nil, 0)
 
 	// Write all key-value pairs to snapshot file
 	var writeErr error

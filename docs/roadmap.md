@@ -57,7 +57,7 @@
 - [x] Connection handling (accept, read, write)
 - [x] RESP2 protocol integration
 - [x] Graceful shutdown
-- [ ] Connection pooling and limits
+- [x] Connection pooling and limits
 - [x] Timeout handling
 
 **Tests Required**:

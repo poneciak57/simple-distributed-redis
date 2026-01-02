@@ -12,17 +12,20 @@ import (
 )
 
 type Resp2Parser struct {
-	reader *bufio.Reader
+	reader         *bufio.Reader
+	maxMessageSize int64
+	bytesRead      int64
 }
 
-func NewResp2Parser(r io.Reader) *Resp2Parser {
+func NewResp2Parser(r io.Reader, maxMessageSize int64) *Resp2Parser {
 	return &Resp2Parser{
-		reader: bufio.NewReader(r),
+		reader:         bufio.NewReader(r),
+		maxMessageSize: maxMessageSize,
 	}
 }
 
 func NewResp2ParserFromBytes(data []byte) *Resp2Parser {
-	return NewResp2Parser(bytes.NewReader(data))
+	return NewResp2Parser(bytes.NewReader(data), 0) // 0 means no limit for internal use
 }
 
 // RESP2 value types for type-safe parsing
@@ -35,14 +38,37 @@ type Resp2Value interface{}
 type Resp2Array []Resp2Value
 
 func (p *Resp2Parser) parseUntilCRLF() ([]byte, error) {
-	line, err := p.reader.ReadBytes('\n')
-	if err != nil {
-		return nil, err
+	var line []byte
+	for {
+		// ReadSlice fails with ErrBufferFull if the line does not fit in the buffer.
+		// This allows us to read incrementally and check the size limit.
+		chunk, err := p.reader.ReadSlice('\n')
+
+		// We must append chunk before checking error because ReadSlice returns data even on error
+		line = append(line, chunk...)
+		p.bytesRead += int64(len(chunk))
+
+		if p.maxMessageSize > 0 && p.bytesRead > p.maxMessageSize {
+			return nil, fmt.Errorf("message too large: %d > %d", p.bytesRead, p.maxMessageSize)
+		}
+
+		if err == nil {
+			// Found delimiter
+			break
+		}
+		if err != bufio.ErrBufferFull {
+			// Real error (EOF or other)
+			return nil, err
+		}
+		// Continue reading if buffer full
 	}
+
+	// Check for strict \r\n
 	if len(line) < 2 || line[len(line)-2] != '\r' {
-		return nil, fmt.Errorf("invalid CRLF termination")
+		return nil, fmt.Errorf("invalid line ending: expected CRLF")
 	}
-	// Return without the \r\n
+
+	// Return line without \r\n
 	return line[:len(line)-2], nil
 }
 
@@ -97,18 +123,30 @@ func (p *Resp2Parser) parseBulkString() (Resp2Value, error) {
 	if length < -1 {
 		return nil, fmt.Errorf("invalid bulk string length: %d", length)
 	}
+
+	// Check if adding this bulk string would exceed max message size
+	if p.maxMessageSize > 0 {
+		if p.bytesRead+length > p.maxMessageSize {
+			return nil, fmt.Errorf("message too large: %d > %d", p.bytesRead+length, p.maxMessageSize)
+		}
+	}
+
 	// Read exact number of bytes
 	strBytes := make([]byte, length)
 	_, err = io.ReadFull(p.reader, strBytes)
 	if err != nil {
 		return nil, fmt.Errorf("bulk string data too short: %w", err)
 	}
+	p.bytesRead += length
+
 	// Expect CRLF
 	crlf := make([]byte, 2)
 	_, err = io.ReadFull(p.reader, crlf)
 	if err != nil {
 		return nil, fmt.Errorf("missing CRLF after bulk string: %w", err)
 	}
+	p.bytesRead += 2
+
 	if crlf[0] != '\r' || crlf[1] != '\n' {
 		return nil, fmt.Errorf("invalid bulk string termination")
 	}
@@ -134,7 +172,7 @@ func (p *Resp2Parser) parseArray() (Resp2Value, error) {
 	}
 	values := make([]Resp2Value, 0, length)
 	for i := int64(0); i < length; i++ {
-		value, err := p.Parse()
+		value, err := p.parseValue()
 		if err != nil {
 			return nil, err
 		}
@@ -144,6 +182,11 @@ func (p *Resp2Parser) parseArray() (Resp2Value, error) {
 }
 
 func (p *Resp2Parser) Parse() (Resp2Value, error) {
+	p.bytesRead = 0
+	return p.parseValue()
+}
+
+func (p *Resp2Parser) parseValue() (Resp2Value, error) {
 	var kindByte byte
 	var err error
 	for {
@@ -151,6 +194,11 @@ func (p *Resp2Parser) Parse() (Resp2Value, error) {
 		if err != nil {
 			return nil, err
 		}
+		p.bytesRead++
+		if p.maxMessageSize > 0 && p.bytesRead > p.maxMessageSize {
+			return nil, fmt.Errorf("message too large: %d > %d", p.bytesRead, p.maxMessageSize)
+		}
+
 		// Skip whitespace/newlines between commands
 		if kindByte != '\r' && kindByte != '\n' && kindByte != ' ' && kindByte != '\t' {
 			break

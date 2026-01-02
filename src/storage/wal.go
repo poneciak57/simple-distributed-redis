@@ -116,7 +116,7 @@ func (w *SimpleWal[T]) Append(entry WalEntry[T], sync bool) error {
 		entry.Value,
 	}
 
-	parser := protocol.NewResp2Parser(nil)
+	parser := protocol.NewResp2Parser(nil, 0)
 	payload, err := parser.Render(arr)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func (w *SimpleWal[T]) Replay() ([]WalEntry[T], error) {
 	}
 
 	var entries []WalEntry[T]
-	parser := protocol.NewResp2Parser(w.fd)
+	parser := protocol.NewResp2Parser(w.fd, 0)
 
 	for {
 		val, err := parser.Parse()

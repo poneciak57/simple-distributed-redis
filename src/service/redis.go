@@ -35,15 +35,10 @@ func NewRedisServices(storage *StorageService, cfg *config.Config, logger *confi
 }
 
 func (s *RedisService) OnMessage(conn net.Conn) error {
-	parser := protocol.NewResp2Parser(conn)
+	parser := protocol.NewResp2Parser(conn, s.cfg.Redis.MaxMessageSize)
 	opParser := protocol.MakeOpParser(parser)
 
 	for {
-		if s.timeoutDuration > 0 {
-			conn.SetReadDeadline(time.Now().Add(s.timeoutDuration))
-			conn.SetWriteDeadline(time.Now().Add(s.timeoutDuration))
-		}
-
 		op, err := opParser.Parse()
 		if err != nil {
 			if err == io.EOF {
@@ -101,6 +96,10 @@ func (s *RedisService) OnMessage(conn net.Conn) error {
 				return err
 			}
 			return fmt.Errorf("failed to write response: %w", err)
+		}
+
+		if s.timeoutDuration > 0 {
+			conn.SetDeadline(time.Now().Add(s.timeoutDuration))
 		}
 	}
 }

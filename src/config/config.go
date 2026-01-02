@@ -28,9 +28,15 @@ type WALConfig struct {
 }
 
 type RedisConfig struct {
-	Host    string `yaml:"host"`
-	Port    int    `yaml:"port"`
-	Timeout int    `yaml:"timeout"` // in seconds
+	Host                     string `yaml:"host"`
+	Port                     int    `yaml:"port"`
+	Timeout                  int    `yaml:"timeout"`                     // in seconds
+	MaxConnections           int    `yaml:"max_connections"`             // max concurrent connections (workers)
+	MaxPending               int    `yaml:"max_pending"`                 // max pending connections in queue
+	MaxMessageSize           int64  `yaml:"max_message_size"`            // max bulk string size in bytes
+	BaseWorkers              int    `yaml:"base_workers"`                // number of idle workers to keep alive
+	WorkerTTL                int    `yaml:"worker_ttl"`                  // in seconds
+	IdleConnectionsPerWorker int    `yaml:"idle_connections_per_worker"` // idle connections per worker threshold
 }
 
 func DefaultConfig() *Config {
@@ -44,9 +50,15 @@ func DefaultConfig() *Config {
 			Path: ".data/wal.log",
 		},
 		Redis: RedisConfig{
-			Host:    "localhost",
-			Port:    6379,
-			Timeout: 30,
+			Host:                     "localhost",
+			Port:                     6379,
+			Timeout:                  30,
+			MaxConnections:           100,
+			MaxPending:               1000,
+			MaxMessageSize:           10 * 1024 * 1024, // 10MB
+			BaseWorkers:              10,
+			WorkerTTL:                10,
+			IdleConnectionsPerWorker: 3,
 		},
 		Logger: LoggerConfig{
 			Level: "INFO",

@@ -16,4 +16,23 @@ redis:
 
   # time to wait on socket operations read/write before timing out
   # 0 means no timeout
+  # this includes time spent waiting for a free worker
   timeout: 5 # in seconds
+  max_message_size: 1024 # 1KB
+
+  # max number of pending requests in the queue
+  max_pending: 1000
+
+  # max number of workers that can be spawned equiv to max concurrent connections, hovewer at high load it may spawn little more
+  max_workers: 100
+
+  # number of idle workers to keep alive at all times
+  base_workers: 10
+
+  # time after which idle workers are terminated
+  worker_ttl: 10 # in seconds
+
+  # number of idle connections each worker can handle before spawning a new worker
+  # If all workers are busy a new worker is spawned if pending_connections > active_workers * idle_connections_per_worker
+  # it helps to limit the number of workers spawned during high loads
+  idle_connections_per_worker: 3
