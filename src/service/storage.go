@@ -17,22 +17,26 @@ type StorageService struct {
 	snapshotter  storage.Snapshoter[protocol.Resp2Value]
 	storage      storage.Storage[protocol.Resp2Value]
 	cfg          *config.Config
+	logger       *config.Logger
 	mu           sync.RWMutex
 	lastSnapTime int64
 }
 
-func NewStorageService(config *config.Config) *StorageService {
+func NewStorageService(config *config.Config, logger *config.Logger) *StorageService {
 	snapshotter := storage.NewSimpleSnapshotter[protocol.Resp2Value](config.Snapshot.Path)
 	wal, err := storage.NewSimpleWal[protocol.Resp2Value](config.WAL.Path)
 	if err != nil {
+		logger.Error("Failed to create WAL: %v", err)
 		panic(err)
 	}
 	storageInstance, err := snapshotter.LoadSnapshot()
 	if err != nil {
+		logger.Error("Failed to load snapshot: %v", err)
 		panic(err)
 	}
 	entries, err := wal.Replay()
 	if err != nil {
+		logger.Error("Failed to replay WAL: %v", err)
 		panic(err)
 	}
 
@@ -46,6 +50,7 @@ func NewStorageService(config *config.Config) *StorageService {
 		snapshotter:  snapshotter,
 		storage:      storageInstance,
 		cfg:          config,
+		logger:       logger,
 		lastSnapTime: time.Now().Unix(),
 		mu:           sync.RWMutex{},
 	}

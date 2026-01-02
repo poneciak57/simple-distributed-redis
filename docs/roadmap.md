@@ -68,17 +68,17 @@
 
 ### 2.2 Command Router
 **Deliverables**:
-- [ ] Route RESP2 commands to handlers
-- [ ] Response serialization
-- [ ] Error response handling
+- [x] Route RESP2 commands to handlers
+- [x] Response serialization
+- [x] Error response handling
 - [ ] Command pipelining support
 
 ### 2.3 Observability
 **Deliverables**:
-- [ ] Structured logging (with levels)
+- [x] Structured logging (with levels)
 - [ ] Basic metrics (requests/sec, errors, latency)
 - [ ] Health check endpoint (HTTP)
-- [ ] Configuration management
+- [x] Configuration management
 
 ---
 

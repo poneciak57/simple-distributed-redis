@@ -69,8 +69,9 @@ func setupTestRedis(t *testing.T) (*service.RedisService, string) {
 	cfg.Snapshot.Path = filepath.Join(tmpDir, "snapshot.db")
 	cfg.WAL.Path = filepath.Join(tmpDir, "wal.log")
 
-	storageSvc := service.NewStorageService(cfg)
-	redisSvc := service.NewRedisServices(storageSvc, cfg)
+	logger := config.NewLogger("Test")
+	storageSvc := service.NewStorageService(cfg, logger)
+	redisSvc := service.NewRedisServices(storageSvc, cfg, logger)
 
 	return redisSvc, tmpDir
 }

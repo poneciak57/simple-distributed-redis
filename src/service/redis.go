@@ -15,7 +15,7 @@ type RedisService struct {
 	logger  *config.Logger
 }
 
-func NewRedisServices(storage *StorageService, cfg *config.Config) *RedisService {
+func NewRedisServices(storage *StorageService, cfg *config.Config, logger *config.Logger) *RedisService {
 	return &RedisService{
 		meta: TcpMetadata{
 			BaseMetadata: BaseMetadata{
@@ -27,7 +27,7 @@ func NewRedisServices(storage *StorageService, cfg *config.Config) *RedisService
 		},
 		storage: storage,
 		cfg:     cfg,
-		logger:  config.NewLogger("RedisService"),
+		logger:  logger,
 	}
 }
 

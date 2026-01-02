@@ -73,6 +73,14 @@ func NewLogger(name string) *Logger {
 	}
 }
 
+func (l *Logger) Named(name string) *Logger {
+	return &Logger{
+		name:   name,
+		level:  l.level,
+		output: l.output,
+	}
+}
+
 func (l *Logger) SetLevel(level LogLevel) {
 	l.level = level
 }
