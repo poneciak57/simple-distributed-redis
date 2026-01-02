@@ -6,13 +6,15 @@ import (
 	"main/src/config"
 	"main/src/protocol"
 	"net"
+	"time"
 )
 
 type RedisService struct {
-	meta    TcpMetadata
-	storage *StorageService
-	cfg     *config.Config
-	logger  *config.Logger
+	meta            TcpMetadata
+	storage         *StorageService
+	cfg             *config.Config
+	logger          *config.Logger
+	timeoutDuration time.Duration
 }
 
 func NewRedisServices(storage *StorageService, cfg *config.Config, logger *config.Logger) *RedisService {
@@ -25,9 +27,10 @@ func NewRedisServices(storage *StorageService, cfg *config.Config, logger *confi
 			Host: cfg.Redis.Host,
 			Port: cfg.Redis.Port,
 		},
-		storage: storage,
-		cfg:     cfg,
-		logger:  logger,
+		storage:         storage,
+		cfg:             cfg,
+		logger:          logger,
+		timeoutDuration: time.Duration(cfg.Redis.Timeout) * time.Second,
 	}
 }
 
@@ -36,10 +39,19 @@ func (s *RedisService) OnMessage(conn net.Conn) error {
 	opParser := protocol.MakeOpParser(parser)
 
 	for {
+		if s.timeoutDuration > 0 {
+			conn.SetReadDeadline(time.Now().Add(s.timeoutDuration))
+			conn.SetWriteDeadline(time.Now().Add(s.timeoutDuration))
+		}
+
 		op, err := opParser.Parse()
 		if err != nil {
 			if err == io.EOF {
 				return nil
+			}
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				s.logger.Warn("Connection timed out during read: %v", netErr)
+				return err
 			}
 			return fmt.Errorf("failed to parse operation: %w", err)
 		}
@@ -84,6 +96,10 @@ func (s *RedisService) OnMessage(conn net.Conn) error {
 
 		_, err = conn.Write(response)
 		if err != nil {
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				s.logger.Warn("Connection timed out during write: %v", netErr)
+				return err
+			}
 			return fmt.Errorf("failed to write response: %w", err)
 		}
 	}

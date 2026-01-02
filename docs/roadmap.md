@@ -58,7 +58,7 @@
 - [x] RESP2 protocol integration
 - [x] Graceful shutdown
 - [ ] Connection pooling and limits
-- [ ] Timeout handling
+- [x] Timeout handling
 
 **Tests Required**:
 - Integration tests with redis-cli

@@ -13,4 +13,7 @@ wal:
 redis:
   host: "localhost"
   port: 6379
+
+  # time to wait on socket operations read/write before timing out
+  # 0 means no timeout
   timeout: 5 # in seconds
