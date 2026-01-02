@@ -10,6 +10,11 @@ type Config struct {
 	Snapshot SnapshotConfig `yaml:"snapshot"`
 	WAL      WALConfig      `yaml:"wal"`
 	Redis    RedisConfig    `yaml:"redis"`
+	Logger   LoggerConfig   `yaml:"logger"`
+}
+
+type LoggerConfig struct {
+	Level string `yaml:"level"`
 }
 
 type SnapshotConfig struct {
@@ -42,6 +47,9 @@ func DefaultConfig() *Config {
 			Host:    "localhost",
 			Port:    6379,
 			Timeout: 30,
+		},
+		Logger: LoggerConfig{
+			Level: "INFO",
 		},
 	}
 }

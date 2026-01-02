@@ -12,20 +12,22 @@ type RedisService struct {
 	meta    TcpMetadata
 	storage *StorageService
 	cfg     *config.Config
+	logger  *config.Logger
 }
 
-func NewRedisServices(storage *StorageService, config *config.Config) *RedisService {
+func NewRedisServices(storage *StorageService, cfg *config.Config) *RedisService {
 	return &RedisService{
 		meta: TcpMetadata{
 			BaseMetadata: BaseMetadata{
 				Name:    "RedisService",
 				Version: "1.0.0",
 			},
-			Host: config.Redis.Host,
-			Port: config.Redis.Port,
+			Host: cfg.Redis.Host,
+			Port: cfg.Redis.Port,
 		},
 		storage: storage,
-		cfg:     config,
+		cfg:     cfg,
+		logger:  config.NewLogger("RedisService"),
 	}
 }
 
@@ -41,6 +43,8 @@ func (s *RedisService) OnMessage(conn net.Conn) error {
 			}
 			return fmt.Errorf("failed to parse operation: %w", err)
 		}
+
+		s.logger.Debug("Processing operation: %s", op.Kind)
 
 		var response []byte
 

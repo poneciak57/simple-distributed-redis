@@ -1,4 +1,7 @@
 
+logger:
+  level: "DEBUG"
+
 snapshot:
   path: ".data/snapshot.db"
   interval: 3600 # in seconds

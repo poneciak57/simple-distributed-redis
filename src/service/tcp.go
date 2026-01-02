@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"main/src/config"
 	"net"
 	"sync/atomic"
 )
@@ -22,6 +23,7 @@ type TcpMetrics struct {
 type TcpServiceManager struct {
 	service Service[net.Conn, BaseMetrics, TcpMetadata]
 	metrics TcpMetrics
+	logger  *config.Logger
 }
 
 // NewTcpServiceManager creates a new TcpServiceManager that listens on the given address and port,
@@ -29,6 +31,7 @@ type TcpServiceManager struct {
 func NewTcpServiceManager(service Service[net.Conn, BaseMetrics, TcpMetadata]) *TcpServiceManager {
 	return &TcpServiceManager{
 		service: service,
+		logger:  config.NewLogger("TcpServiceManager"),
 	}
 }
 
@@ -47,7 +50,7 @@ func (s *TcpServiceManager) loop(l net.Listener) {
 		go func() {
 			err := s.service.OnMessage(conn)
 			if err != nil {
-				fmt.Printf("Error handling message: %v\n", err)
+				s.logger.Error("Error handling message: %v", err)
 				atomic.AddInt64(&s.metrics.OnMessageErrors, 1)
 			}
 			atomic.AddInt64(&s.metrics.InFlightRequests, -1)

@@ -11,6 +11,21 @@ const (
 	PING
 )
 
+func (o OpType) String() string {
+	switch o {
+	case GET:
+		return "GET"
+	case SET:
+		return "SET"
+	case DELETE:
+		return "DELETE"
+	case PING:
+		return "PING"
+	default:
+		return fmt.Sprintf("UNKNOWN(%d)", int(o))
+	}
+}
+
 type OpPayloadPing struct {
 }
 

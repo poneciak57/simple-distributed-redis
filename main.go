@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"main/src/config"
 	"main/src/service"
 	"os"
@@ -10,13 +9,21 @@ import (
 )
 
 func main() {
+	log := config.NewLogger("Main")
 
-	config, err := config.LoadConfig("config/default.yaml")
+	cfg, err := config.LoadConfig("config/default.yaml")
 	if err != nil {
 		panic(err)
 	}
-	storageService := service.NewStorageService(config)
-	redisService := service.NewRedisServices(storageService, config)
+
+	level, err := config.ParseLevel(cfg.Logger.Level)
+	if err == nil {
+		config.SetDefaultLevel(level)
+		log.SetLevel(level)
+	}
+
+	storageService := service.NewStorageService(cfg)
+	redisService := service.NewRedisServices(storageService, cfg)
 	tcpManager := service.NewTcpServiceManager(redisService)
 	if err := tcpManager.Start(); err != nil {
 		panic(err)
@@ -27,8 +34,8 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("Shutting down server...")
+	log.Info("Shutting down server...")
 	if err := tcpManager.Stop(); err != nil {
-		fmt.Printf("Error stopping server: %v\n", err)
+		log.Error("Error stopping server: %v", err)
 	}
 }
