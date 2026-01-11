@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	Network  NetworkConfig  `yaml:"network"`
 	Snapshot SnapshotConfig `yaml:"snapshot"`
 	WAL      WALConfig      `yaml:"wal"`
 	Redis    RedisConfig    `yaml:"redis"`
@@ -15,6 +16,11 @@ type Config struct {
 
 type LoggerConfig struct {
 	Level string `yaml:"level"`
+}
+
+type NetworkConfig struct {
+	Peers       []string `yaml:"peers"`
+	BindAddress string   `yaml:"bind_address"`
 }
 
 type SnapshotConfig struct {

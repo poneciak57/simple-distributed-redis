@@ -2,6 +2,16 @@
 logger:
   level: "DEBUG"
 
+network:
+  peers: # list of peer addresses in the cluster (including own address)
+    - "0.0.0.0:7000"
+    - "0.0.0.0:7001"
+    - "0.0.0.0:7002"
+    - "0.0.0.0:7003"
+    - "0.0.0.0:7004"
+    - "0.0.0.0:7005"
+  bind_address: "0.0.0.0:7000" # address to bind the server to
+
 snapshot:
   path: ".data/snapshot.db"
   interval: 3600 # in seconds
