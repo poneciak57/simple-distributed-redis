@@ -55,8 +55,6 @@ func (s *RedisService) OnMessage(conn net.Conn) error {
 
 		var response []byte
 
-		// Maybe make storage work on bytes directly to avoid conversions
-
 		switch op.Kind {
 		case protocol.GET:
 			val, err := s.storage.Get(op.Payload.(protocol.OpPayloadGet).Key)

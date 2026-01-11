@@ -188,3 +188,32 @@ func TestRedisService_ConcurrentConnections(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestRedisService_Pipelining(t *testing.T) {
+	svc, tmpDir := setupTestRedis(t)
+	defer os.RemoveAll(tmpDir)
+
+	// Pipeline: SET pipekey pipeval -> GET pipekey -> PING
+	// This simulates sending multiple commands in a single batch (pipelining)
+	// The parsing loop in OnMessage should handle them sequentially.
+
+	// 1. SET pipekey pipeval
+	input := "*3\r\n$3\r\nSET\r\n$7\r\npipekey\r\n$7\r\npipeval\r\n"
+	// 2. GET pipekey
+	input += "*2\r\n$3\r\nGET\r\n$7\r\npipekey\r\n"
+	// 3. PING
+	input += "*1\r\n$4\r\nPING\r\n"
+
+	conn := NewMockConn([]byte(input))
+
+	// OnMessage loops until EOF or error. MockConn returns EOF when buffer is empty.
+	if err := svc.OnMessage(conn); err != nil {
+		t.Fatalf("OnMessage failed: %v", err)
+	}
+
+	// We expect all responses concatenated in order
+	expected := "+OK\r\n$7\r\npipeval\r\n+PONG\r\n"
+	if got := conn.writeBuf.String(); got != expected {
+		t.Errorf("Pipelining mismatch.\nExpected: %q\nGot:      %q", expected, got)
+	}
+}

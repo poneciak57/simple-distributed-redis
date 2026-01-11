@@ -71,7 +71,7 @@
 - [x] Route RESP2 commands to handlers
 - [x] Response serialization
 - [x] Error response handling
-- [ ] Command pipelining support
+- [x] Command pipelining support
 
 ### 2.3 Observability
 **Deliverables**:
