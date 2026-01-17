@@ -34,6 +34,18 @@ func NewRedisServices(storage *StorageService, cfg *config.Config, logger *confi
 	}
 }
 
+func errorResponse(err error) []byte {
+	return []byte(fmt.Sprintf("-ERR %v\r\n", err))
+}
+
+func okResponse() []byte {
+	return []byte("+OK\r\n")
+}
+
+func pongResponse() []byte {
+	return []byte("+PONG\r\n")
+}
+
 func (s *RedisService) OnMessage(conn net.Conn) error {
 	parser := protocol.NewResp2Parser(conn, s.cfg.Redis.MaxMessageSize)
 	opParser := protocol.MakeOpParser(parser)
@@ -59,32 +71,32 @@ func (s *RedisService) OnMessage(conn net.Conn) error {
 		case protocol.GET:
 			val, err := s.storage.Get(op.Payload.(protocol.OpPayloadGet).Key)
 			if err != nil {
-				response = []byte(fmt.Sprintf("-ERR %v\r\n", err))
+				response = errorResponse(err)
 			} else {
 				response, err = parser.Render(val)
 				if err != nil {
-					response = []byte(fmt.Sprintf("-ERR %v\r\n", err))
+					response = errorResponse(err)
 				}
 			}
 		case protocol.SET:
 			err = s.storage.Set(op.Payload.(protocol.OpPayloadSet).Key, op.Payload.(protocol.OpPayloadSet).Value)
 			if err != nil {
-				response = []byte(fmt.Sprintf("-ERR %v\r\n", err))
+				response = errorResponse(err)
 			} else {
-				response = []byte("+OK\r\n")
+				response = okResponse()
 			}
 		case protocol.DELETE:
 			err := s.storage.Delete(op.Payload.(protocol.OpPayloadDelete).Key)
 			if err != nil {
-				response = []byte(fmt.Sprintf("-ERR %v\r\n", err))
+				response = errorResponse(err)
 			} else {
-				response = []byte("+OK\r\n")
+				response = okResponse()
 			}
 		case protocol.PING:
-			response = []byte("+PONG\r\n")
+			response = pongResponse()
 		default:
 			// It is an error on the client side, respond with error
-			response = []byte("-ERR unknown operation\r\n")
+			response = errorResponse(fmt.Errorf("unknown operation"))
 		}
 
 		_, err = conn.Write(response)
