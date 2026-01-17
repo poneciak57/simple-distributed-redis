@@ -16,11 +16,11 @@ A learning-focused implementation of a distributed key-value store inspired by R
 - ✅ Generic storage interface with in-memory implementation
 - ✅ Operation parsing framework
 - ✅ Comprehensive unit tests
-
-### Planned Features
 - ✅ Write-Ahead Log (WAL) for durability
 - ✅ Snapshot mechanism for faster recovery
-- 🔜 TCP server with RESP2 protocol
+- ✅ TCP server with RESP2 protocol
+
+### Planned Features
 - 🔜 Raft consensus algorithm
 - 🔜 Distributed cluster with replication
 - 🔜 Consistent hashing for sharding
@@ -30,31 +30,14 @@ A learning-focused implementation of a distributed key-value store inspired by R
 
 ## 🏗️ Architecture
 
-```
-┌─────────────┐
-│   Client    │  (redis-cli compatible)
-│  (RESP2)    │
-└──────┬──────┘
-       │ TCP
-┌──────▼────────────────────────────┐
-│        Node Instance              │
-│  ┌────────────────────────────┐   │
-│  │    TCP Server (RESP2)      │   │
-│  └──────────┬─────────────────┘   │
-│  ┌──────────▼─────────────────┐   │
-│  │   Command Processor        │   │
-│  └──────────┬─────────────────┘   │
-│       ┌─────┴─────┐               │
-│  ┌────▼────┐ ┌────▼────────┐      │
-│  │  Raft   │ │  Storage    │      │
-│  │ Leader  │ │  Engine     │      │
-│  └────┬────┘ └─────────────┘      │
-└───────┼───────────────────────────┘
-        │ gRPC (Raft)
-┌───────▼───────────────────────────┐
-│      Other Cluster Nodes          │
-└───────────────────────────────────┘
-```
+Here is the high-level planned architecture of one shard/node cluster in the distributed system:
+
+![Architecture Diagram](docs/assets/shard.png)
+
+Here is the high-level architecture of the node components:
+
+![Architecture Diagram](docs/assets/services.png)
+
 
 ## 🚀 Quick Start
 
@@ -86,6 +69,7 @@ TBD
 ## 📚 Documentation
 
 - **[Roadmap](docs/roadmap.md)**: Development phases and current progress
+- **[Raft Algorithm](docs/raft.md)**: Explanation of Raft consensus algorithm and edge cases
 - TBD
 
 ## 🧪 Testing
@@ -150,6 +134,6 @@ MIT License - See LICENSE file for details
 
 ## 🙏 Acknowledgments
 
-- Redis team for the excellent protocol and inspiration
+- Redis team for the excellent protocol, inspiration and documentation
 - Raft authors for making consensus understandable
 - Go team for a great language for distributed systems
