@@ -18,9 +18,14 @@ type LoggerConfig struct {
 	Level string `yaml:"level"`
 }
 
+type PeerConfig struct {
+	ID      string `yaml:"id"`
+	Address string `yaml:"address"`
+}
+
 type NetworkConfig struct {
-	Peers       []string `yaml:"peers"`
-	BindAddress string   `yaml:"bind_address"`
+	Self  PeerConfig   `yaml:",inline"`
+	Peers []PeerConfig `yaml:"peers"`
 }
 
 type SnapshotConfig struct {
@@ -65,6 +70,18 @@ func DefaultConfig() *Config {
 			BaseWorkers:              10,
 			WorkerTTL:                10,
 			IdleConnectionsPerWorker: 3,
+		},
+		Network: NetworkConfig{
+			Self: PeerConfig{
+				ID:      "self",
+				Address: "localhost:5000",
+			},
+			Peers: []PeerConfig{
+				{
+					ID:      "self",
+					Address: "localhost:5000",
+				},
+			},
 		},
 		Logger: LoggerConfig{
 			Level: "INFO",

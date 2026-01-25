@@ -3,14 +3,20 @@ logger:
   level: "DEBUG"
 
 network:
-  peers: # list of peer addresses in the cluster (including own address)
-    - "0.0.0.0:7000"
-    - "0.0.0.0:7001"
-    - "0.0.0.0:7002"
-    - "0.0.0.0:7003"
-    - "0.0.0.0:7004"
-    - "0.0.0.0:7005"
-  bind_address: "0.0.0.0:7000" # address to bind the server to
+  id: "node-1" # unique identifier for this node
+  address: "0.0.0.0:7000" # address to bind the server to
+  # list of peer nodes in the cluster (can include self for easier cluster configuration)
+  peers:
+    - id: "node-1"
+      address: "0.0.0.0:7000"
+    - id: "node-2"
+      address: "0.0.0.0:7001"
+    - id: "node-3"
+      address: "0.0.0.0:7002"
+    - id: "node-4"
+      address: "0.0.0.0:7003"
+    - id: "node-5"
+      address: "0.0.0.0:7004"
 
 snapshot:
   path: ".data/snapshot.db"
